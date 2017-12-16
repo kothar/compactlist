@@ -3,14 +3,10 @@ package net.kothar.compactlist.internal;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-
 import org.junit.Before;
 import org.junit.Test;
 
 public class LongArrayNodeTest {
-
-	private static final int BENCHMARK_COUNT = 6_000_000;
 
 	NodeContainer parent = new NodeContainer() {
 		@Override
@@ -130,67 +126,4 @@ public class LongArrayNodeTest {
 		assertTrue(intNode instanceof IntArrayNode);
 	}
 
-	@Test
-	public void benchmarkArrayList() {
-		ArrayList<Long> list = new ArrayList<>();
-		System.gc();
-		long start = System.currentTimeMillis();
-
-		for (int i = 0; i < BENCHMARK_COUNT; i++) {
-			list.add((long) i);
-		}
-
-		long elapsed = System.currentTimeMillis() - start;
-		long usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		System.out.println("Inserted " + BENCHMARK_COUNT + " longs into ArrayList in " + elapsed + " ms. Using "
-			+ (usedMem >> 20) + " mb");
-
-		start = System.currentTimeMillis();
-		long total = 0;
-		for (int i = 0; i < BENCHMARK_COUNT; i++) {
-			total += list.get(i);
-		}
-		elapsed = System.currentTimeMillis() - start;
-		System.out.println("Summed " + BENCHMARK_COUNT + " longs to " + total + " in " + elapsed + " ms.");
-
-	}
-
-	@Test
-	public void benchmarkLongArrayNode() {
-		LongArrayNode list = new LongArrayNode(parent, manager);
-		System.gc();
-		long start = System.currentTimeMillis();
-
-		for (int i = 0; i < BENCHMARK_COUNT; i++) {
-			list.addLong(list.size, i);
-		}
-
-		long elapsed = System.currentTimeMillis() - start;
-		long usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		System.out.println("Inserted " + BENCHMARK_COUNT + " longs into LongArrayNode in " + elapsed + " ms. Using "
-			+ (usedMem >> 20) + " mb");
-
-		start = System.currentTimeMillis();
-		long total = 0;
-		for (int i = 0; i < BENCHMARK_COUNT; i++) {
-			total += list.getLong(i);
-		}
-		elapsed = System.currentTimeMillis() - start;
-		System.out.println("Summed " + BENCHMARK_COUNT + " longs to " + total + " in " + elapsed + " ms.");
-
-		// Compact
-		list.compact();
-
-		System.gc();
-		usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		System.out.println("Using " + (usedMem >> 20) + " mb after compaction");
-
-		start = System.currentTimeMillis();
-		total = 0;
-		for (int i = 0; i < BENCHMARK_COUNT; i++) {
-			total += list.getLong(i);
-		}
-		elapsed = System.currentTimeMillis() - start;
-		System.out.println("Summed " + BENCHMARK_COUNT + " compacted longs to " + total + " in " + elapsed + " ms.");
-	}
 }

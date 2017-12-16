@@ -1,6 +1,6 @@
 package net.kothar.compactlist.internal;
 
-public interface Node extends NodeContainer {
+public interface Node extends NodeContainer, Iterable<Long> {
 
 	int size();
 
@@ -13,4 +13,5 @@ public interface Node extends NodeContainer {
 	NodeContainer getParent();
 
 	Node compact();
+
 }

@@ -1,5 +1,8 @@
 package net.kothar.compactlist.internal;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+
 public abstract class AbstractNode<T> implements Node {
 
 	private static final int MAX_LEAF_SIZE = 1_000_000;
@@ -246,6 +249,64 @@ public abstract class AbstractNode<T> implements Node {
 			System.out.println(prefix + "h: " + height);
 			left.print(prefix + indent, indent);
 			right.print(prefix + indent, indent);
+		}
+	}
+
+	@Override
+	public Iterator<Long> iterator() {
+		return new NodeIterator();
+	}
+
+	public class NodeIterator implements Iterator<Long> {
+
+		ArrayList<AbstractNode<?>> stack = new ArrayList<>();
+
+		int pos, currentPos;
+		AbstractNode<?> current;
+
+		public NodeIterator() {
+			current = AbstractNode.this;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return pos < size;
+		}
+
+		@Override
+		public Long next() {
+
+			// Only true if we've depleted this node
+			if (currentPos >= current.size) {
+				// Move to the right sibling node
+				current = stack.remove(stack.size() - 1).right;
+				currentPos = 0;
+			}
+
+			// Move to the leftmost child
+			while (current.left != null) {
+				stack.add(current);
+				current = current.left;
+			}
+
+			// Iterate over current node
+			long v = current.getLongElement(currentPos++);
+			pos++;
+			return v;
+
+		}
+
+		@Override
+		public void remove() {
+			pos--;
+			currentPos--;
+			current.removeElement(currentPos);
+			NodeContainer n = current;
+			while (n instanceof AbstractNode) {
+				AbstractNode<?> p = (AbstractNode<?>) n;
+				p.size--;
+				n = p.parent;
+			}
 		}
 	}
 }

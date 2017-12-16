@@ -1,6 +1,7 @@
 package net.kothar.compactlist;
 
 import java.util.AbstractList;
+import java.util.Iterator;
 
 import net.kothar.compactlist.internal.LongArrayNode;
 import net.kothar.compactlist.internal.Node;
@@ -34,4 +35,19 @@ public class LongList extends AbstractList<Long> implements NodeContainer {
 		}
 	}
 
+	/**
+	 * Tries to find more efficient in-memory representations for each list segment
+	 */
+	public void compact() {
+		root.compact();
+	}
+
+	/**
+	 * The iterator used here maintains its position in the tree, making it slightly
+	 * more efficient than repeatedly calling get over the range of indices.
+	 */
+	@Override
+	public Iterator<Long> iterator() {
+		return root.iterator();
+	}
 }
