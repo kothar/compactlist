@@ -2,14 +2,14 @@ package net.kothar.compactlist.internal;
 
 public class IntArrayNode extends ArrayNode<int[]> {
 
-	Long offset;
+	long offset;
 
-	public IntArrayNode(Long offset, NodeContainer parent, NodeManager manager) {
+	public IntArrayNode(Long offset, Node<?> parent, NodeManager manager) {
 		super(parent, manager);
 		this.offset = offset;
 	}
 
-	public IntArrayNode(long offset, AbstractNode<?> node) {
+	public IntArrayNode(long offset, Node<?> node) {
 		super(node.parent, node.manager);
 		this.offset = offset;
 		size = node.size;
@@ -45,4 +45,9 @@ public class IntArrayNode extends ArrayNode<int[]> {
 		right = new IntArrayNode(offset, this, manager);
 	}
 
+	@Override
+	protected boolean elementInRange(long element) {
+		long v = element - offset;
+		return v >= 0 && v < 1 << 32;
+	}
 }

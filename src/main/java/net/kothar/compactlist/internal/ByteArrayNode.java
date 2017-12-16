@@ -2,14 +2,14 @@ package net.kothar.compactlist.internal;
 
 public class ByteArrayNode extends ArrayNode<byte[]> {
 
-	Long offset;
+	long offset;
 
-	public ByteArrayNode(Long offset, NodeContainer parent, NodeManager manager) {
+	public ByteArrayNode(long offset, Node<?> parent, NodeManager manager) {
 		super(parent, manager);
 		this.offset = offset;
 	}
 
-	public ByteArrayNode(long offset, AbstractNode<?> node) {
+	public ByteArrayNode(long offset, Node<?> node) {
 		super(node.parent, node.manager);
 		this.offset = offset;
 		size = node.size;
@@ -43,6 +43,12 @@ public class ByteArrayNode extends ArrayNode<byte[]> {
 	protected void createChildren() {
 		left = new ByteArrayNode(offset, parent, manager);
 		right = new ByteArrayNode(offset, parent, manager);
+	}
+
+	@Override
+	protected boolean elementInRange(long element) {
+		long v = element - offset;
+		return v >= 0 && v < 1 << 8;
 	}
 
 }

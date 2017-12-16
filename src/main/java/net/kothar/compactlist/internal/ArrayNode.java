@@ -1,8 +1,8 @@
 package net.kothar.compactlist.internal;
 
-public abstract class ArrayNode<T> extends AbstractNode<T> {
+public abstract class ArrayNode<T> extends Node<T> {
 
-	public ArrayNode(NodeContainer parent, NodeManager manager) {
+	public ArrayNode(Node<?> parent, NodeManager manager) {
 		super(parent, manager);
 	}
 
@@ -48,6 +48,11 @@ public abstract class ArrayNode<T> extends AbstractNode<T> {
 			System.arraycopy(elements, index, newValues, index + 1, size - index);
 			elements = newValues;
 		}
+		set(elements, index, element);
+	}
+
+	@Override
+	protected void setLongElement(int index, long element) {
 		set(elements, index, element);
 	}
 

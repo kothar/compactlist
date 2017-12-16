@@ -2,8 +2,14 @@ package net.kothar.compactlist.internal;
 
 public class LongArrayNode extends ArrayNode<long[]> {
 
-	public LongArrayNode(NodeContainer parent, NodeManager manager) {
+	public LongArrayNode(Node<?> parent, NodeManager manager) {
 		super(parent, manager);
+	}
+
+	public LongArrayNode(Node<?> parent, NodeManager manager, long[] elements, int size) {
+		this(parent, manager);
+		this.elements = elements;
+		this.size = size;
 	}
 
 	@Override
@@ -46,6 +52,11 @@ public class LongArrayNode extends ArrayNode<long[]> {
 	protected void createChildren() {
 		left = new LongArrayNode(parent, manager);
 		right = new LongArrayNode(parent, manager);
+	}
+
+	@Override
+	protected boolean elementInRange(long element) {
+		return true;
 	}
 
 }

@@ -7,13 +7,13 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
-public class LongListTest {
+public class CompactListTest {
 
 	private static final int BENCHMARK_COUNT = 6_000_000;
 
 	@Test
 	public void testAdd() {
-		LongList list = new LongList();
+		CompactList list = new CompactList();
 
 		list.add(1L);
 		list.add(2L);
@@ -61,7 +61,7 @@ public class LongListTest {
 
 	@Test
 	public void benchmarkLongArrayNode() {
-		LongList list = new LongList();
+		CompactList list = new CompactList();
 		System.gc();
 		long start = System.currentTimeMillis();
 

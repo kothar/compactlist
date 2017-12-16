@@ -5,17 +5,29 @@ import java.util.Iterator;
 
 import net.kothar.compactlist.internal.LongArrayNode;
 import net.kothar.compactlist.internal.Node;
-import net.kothar.compactlist.internal.NodeContainer;
 import net.kothar.compactlist.internal.NodeManager;
+import net.kothar.compactlist.internal.NoopNodeManager;
 
-public class LongList extends AbstractList<Long> implements NodeContainer {
+public class CompactList extends AbstractList<Long> {
 
-	NodeManager manager = new NodeManager();
-	Node root = new LongArrayNode(this, manager);
+	NodeManager manager;
+	Node<?> root;
+
+	public CompactList() {
+		manager = new NoopNodeManager();
+		root = new LongArrayNode(null, manager);
+	}
 
 	@Override
 	public void add(int index, Long element) {
-		root.addLong(index, element);
+		root = root.addLong(index, element);
+	}
+
+	@Override
+	public Long remove(int index) {
+		long v = root.getLong(index);
+		root = root.remove(index);
+		return v;
 	}
 
 	@Override
@@ -24,15 +36,15 @@ public class LongList extends AbstractList<Long> implements NodeContainer {
 	}
 
 	@Override
-	public int size() {
-		return root.size();
+	public Long set(int index, Long element) {
+		long v = root.getLong(index);
+		root = root.setLong(index, element);
+		return v;
 	}
 
 	@Override
-	public void swap(Node dirtyNode, Node cleanNode) {
-		if (root == dirtyNode) {
-			root = cleanNode;
-		}
+	public int size() {
+		return root.size();
 	}
 
 	/**
