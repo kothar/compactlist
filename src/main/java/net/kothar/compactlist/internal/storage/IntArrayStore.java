@@ -38,4 +38,9 @@ public class IntArrayStore extends CompactArrayStore<int[]> {
 		return value >= 0 && value < 1 << 32;
 	}
 
+	@Override
+	public int getWidth() {
+		return Integer.SIZE;
+	}
+
 }

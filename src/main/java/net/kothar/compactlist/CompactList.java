@@ -1,5 +1,6 @@
 package net.kothar.compactlist;
 
+import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Iterator;
 
@@ -7,7 +8,9 @@ import net.kothar.compactlist.internal.Node;
 import net.kothar.compactlist.internal.NodeManager;
 import net.kothar.compactlist.internal.QueueingNodeManager;
 
-public class CompactList extends AbstractList<Long> {
+public class CompactList extends AbstractList<Long> implements LongList, Serializable {
+
+	private static final long serialVersionUID = -3558458042495888205L;
 
 	NodeManager manager;
 	Node root;
@@ -23,21 +26,41 @@ public class CompactList extends AbstractList<Long> {
 
 	@Override
 	public void add(int index, Long element) {
+		addLong(index, element);
+	}
+
+	@Override
+	public void addLong(int index, long element) {
 		root.addLong(index, element);
 	}
 
 	@Override
 	public Long remove(int index) {
-		return root.remove(index);
+		return removeLong(index);
+	}
+
+	@Override
+	public long removeLong(int index) {
+		return root.removeLong(index);
 	}
 
 	@Override
 	public Long get(int index) {
+		return getLong(index);
+	}
+
+	@Override
+	public long getLong(int index) {
 		return root.getLong(index);
 	}
 
 	@Override
 	public Long set(int index, Long element) {
+		return setLong(index, element);
+	}
+
+	@Override
+	public long setLong(int index, long element) {
 		return root.setLong(index, element);
 	}
 

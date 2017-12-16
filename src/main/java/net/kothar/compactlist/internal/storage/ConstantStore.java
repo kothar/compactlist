@@ -56,4 +56,9 @@ public class ConstantStore extends AbstractStore {
 		return size;
 	}
 
+	@Override
+	public int getWidth() {
+		return 0;
+	}
+
 }

@@ -2,6 +2,8 @@ package net.kothar.compactlist.internal;
 
 public class NoopNodeManager implements NodeManager {
 
+	private static final long serialVersionUID = 1L;
+
 	@Override
 	public void mark(Node node) {
 		// no-op

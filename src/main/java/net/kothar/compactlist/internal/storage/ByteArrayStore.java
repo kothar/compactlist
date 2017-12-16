@@ -38,4 +38,9 @@ public class ByteArrayStore extends CompactArrayStore<byte[]> {
 		return compactValue >= 0 && compactValue < 1 << 8;
 	}
 
+	@Override
+	public int getWidth() {
+		return Byte.SIZE;
+	}
+
 }

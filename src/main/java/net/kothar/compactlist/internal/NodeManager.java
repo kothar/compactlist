@@ -1,6 +1,8 @@
 package net.kothar.compactlist.internal;
 
-public interface NodeManager {
+import java.io.Serializable;
+
+public interface NodeManager extends Serializable {
 
 	void mark(Node node);
 

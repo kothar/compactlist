@@ -4,6 +4,8 @@ import java.util.Iterator;
 
 public abstract class AbstractStore implements StorageStrategy {
 
+	private static final long serialVersionUID = -4353672868307014379L;
+
 	/** When allocating a new store, add an extra buffer for future expansion */
 	public static final int ALLOCATION_BUFFER = 1 << 4;
 
@@ -46,10 +48,13 @@ public abstract class AbstractStore implements StorageStrategy {
 		};
 	}
 
-	protected void copy(StorageStrategy elements, int offset) {
-		int n = elements.size();
-		for (int i = 0; i < n; i++) {
-			set(i + offset, elements.get(i));
+	public void copy(StorageStrategy src, int dstOffset) {
+		copy(src, dstOffset, 0, src.size());
+	}
+
+	public void copy(StorageStrategy src, int dstOffset, int srcOffset, int length) {
+		for (int i = 0; i < length; i++) {
+			set(dstOffset + i, src.get(srcOffset + i));
 		}
 	}
 }

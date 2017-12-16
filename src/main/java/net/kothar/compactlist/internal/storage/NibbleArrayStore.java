@@ -53,4 +53,8 @@ public class NibbleArrayStore extends CompactArrayStore<byte[]> {
 		return compactValue >= 0 && compactValue < 1 << 4;
 	}
 
+	@Override
+	public int getWidth() {
+		return 4;
+	}
 }

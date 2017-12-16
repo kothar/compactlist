@@ -1,11 +1,14 @@
 package net.kothar.compactlist.internal;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import net.kothar.compactlist.LongList;
 import net.kothar.compactlist.internal.compaction.CompactionEvaluator;
 import net.kothar.compactlist.internal.compaction.CompactionStrategy;
 import net.kothar.compactlist.internal.compaction.LinearPredictionCompactionStrategy;
@@ -20,7 +23,9 @@ import net.kothar.compactlist.internal.storage.NibbleArrayStore;
 import net.kothar.compactlist.internal.storage.ShortArrayStore;
 import net.kothar.compactlist.internal.storage.StorageStrategy;
 
-public class Node implements Iterable<Long> {
+public class Node implements Iterable<Long>, LongList, Serializable {
+
+	private static final long serialVersionUID = 3105932349913959938L;
 
 	private static final int MAX_LEAF_SIZE = 1 << 16;
 	private static final int MIN_SUBTREE_SIZE = 1_000;
@@ -44,10 +49,12 @@ public class Node implements Iterable<Long> {
 		this.size = elements.size();
 	}
 
+	@Override
 	public int size() {
 		return size;
 	}
 
+	@Override
 	public long getLong(int index) {
 		if (index >= size || index < 0) {
 			throw new ArrayIndexOutOfBoundsException(index);
@@ -67,6 +74,7 @@ public class Node implements Iterable<Long> {
 		return right.getLong(index - left.size);
 	}
 
+	@Override
 	public long setLong(int index, long element) {
 		if (index > size || index < 0) {
 			throw new ArrayIndexOutOfBoundsException(index);
@@ -90,6 +98,7 @@ public class Node implements Iterable<Long> {
 		}
 	}
 
+	@Override
 	public void addLong(int index, long element) {
 		if (index > size || index < 0) {
 			throw new ArrayIndexOutOfBoundsException(index);
@@ -106,13 +115,16 @@ public class Node implements Iterable<Long> {
 
 		// Replace with non-compact representation if out of range
 		if (elements != null && !elements.inRange(index, element, false)) {
-			// TODO we can avoid re-copying elements after index
-			elements = new LongArrayStore(elements, 0, size);
+			LongArrayStore newElements = new LongArrayStore(size + 1);
+			newElements.copy(elements, 0, 0, index);
+			newElements.set(index, element);
+			newElements.copy(elements, index + 1, index, size - index);
+			elements = newElements;
 			manager.mark(this);
 		}
 
 		// Leaf
-		if (elements != null) {
+		else if (elements != null) {
 			elements.add(index, element);
 		} else if (index <= left.size) {
 			// Left branch
@@ -126,7 +138,8 @@ public class Node implements Iterable<Long> {
 		balance();
 	}
 
-	public long remove(int index) {
+	@Override
+	public long removeLong(int index) {
 		if (index > size || index < 0) {
 			throw new ArrayIndexOutOfBoundsException(index);
 		}
@@ -144,10 +157,10 @@ public class Node implements Iterable<Long> {
 			return elements.remove(index);
 		} else if (index < left.size) {
 			// Left branch
-			oldValue = left.remove(index);
+			oldValue = left.removeLong(index);
 		} else {
 			// Right branch
-			oldValue = right.remove(index - left.size);
+			oldValue = right.removeLong(index - left.size);
 		}
 
 		if (size < MIN_SUBTREE_SIZE) {
@@ -160,10 +173,13 @@ public class Node implements Iterable<Long> {
 
 	protected void split(int pivot) {
 		if (elements != null) {
-			// TODO we could avoid copying the elements for left by re-using a truncated
-			// store
-			left = new Node(this, manager, new LongArrayStore(elements, 0, pivot));
+			// Right node takes a copy of data after pivot
 			right = new Node(this, manager, new LongArrayStore(elements, pivot, size - pivot));
+
+			// Left re-uses the current elements array
+			elements.setSize(pivot);
+			left = new Node(this, manager, elements);
+
 			elements = null;
 			height = 1;
 
@@ -412,5 +428,26 @@ public class Node implements Iterable<Long> {
 				n = n.parent;
 			}
 		}
+	}
+
+	public void walk(Consumer<Node> leafConsumer) {
+		ArrayList<Node> stack = new ArrayList<>();
+		stack.add(this);
+
+		while (!stack.isEmpty()) {
+			Node current = stack.remove(stack.size() - 1);
+
+			// Move to the leftmost child
+			while (current.elements == null) {
+				stack.add(current.right);
+				current = current.left;
+			}
+
+			leafConsumer.accept(current);
+		}
+	}
+
+	public StorageStrategy getStorageStrategy() {
+		return elements;
 	}
 }

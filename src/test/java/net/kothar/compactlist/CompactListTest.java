@@ -9,6 +9,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import net.kothar.compactlist.internal.NoopNodeManager;
+
 public class CompactListTest {
 
 	private static final int BENCHMARK_COUNT = 6_000_000;
@@ -69,7 +71,7 @@ public class CompactListTest {
 
 	@Test
 	public void benchmarkCompactList() {
-		CompactList list = new CompactList();
+		CompactList list = new CompactList(new NoopNodeManager());
 		System.gc();
 		long start = System.currentTimeMillis();
 

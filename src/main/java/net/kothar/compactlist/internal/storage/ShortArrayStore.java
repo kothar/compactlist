@@ -38,4 +38,9 @@ public class ShortArrayStore extends CompactArrayStore<short[]> {
 		return value >= 0 && value < 1 << 16;
 	}
 
+	@Override
+	public int getWidth() {
+		return Short.SIZE;
+	}
+
 }

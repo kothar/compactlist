@@ -1,6 +1,6 @@
 package net.kothar.compactlist.internal.compaction;
 
-public class OffsetCompactionStrategy extends CompactionStrategy implements PositionIndependentCompactionStrategy {
+public class OffsetCompactionStrategy implements CompactionStrategy, PositionIndependentCompactionStrategy {
 
 	private long offset;
 

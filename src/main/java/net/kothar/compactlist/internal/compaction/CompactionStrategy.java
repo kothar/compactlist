@@ -1,10 +1,12 @@
 package net.kothar.compactlist.internal.compaction;
 
-public abstract class CompactionStrategy {
+import java.io.Serializable;
 
-	public abstract long getCompactValue(int index, long value);
+public interface CompactionStrategy extends Serializable {
 
-	public abstract long getRealValue(int index, long compactValue);
+	long getCompactValue(int index, long value);
 
-	public abstract void adjustOffset(long minValue);
+	long getRealValue(int index, long compactValue);
+
+	void adjustOffset(long minValue);
 }

@@ -51,7 +51,7 @@ public class NodeTest {
 		node.addLong(2, 6);
 		// Should be 4, 5, 6
 
-		node.remove(1);
+		node.removeLong(1);
 		// Should be 4, 6
 
 		assertEquals(2, node.size);

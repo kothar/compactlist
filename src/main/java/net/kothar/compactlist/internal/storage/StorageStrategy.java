@@ -1,9 +1,11 @@
 package net.kothar.compactlist.internal.storage;
 
+import java.io.Serializable;
+
 /**
  * Encapsulates a strategy for storing a list of long values in a leaf node
  */
-public interface StorageStrategy extends Iterable<Long> {
+public interface StorageStrategy extends Iterable<Long>, Serializable {
 	int size();
 
 	void setSize(int size);
@@ -23,4 +25,6 @@ public interface StorageStrategy extends Iterable<Long> {
 	boolean isPositionIndependent();
 
 	int capacity();
+
+	int getWidth();
 }

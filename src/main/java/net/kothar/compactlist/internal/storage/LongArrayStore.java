@@ -64,21 +64,24 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	/**
 	 * Copy the provided elements into this store at the given offset
 	 * 
-	 * @param elements
-	 * @param offset
 	 */
 	@Override
-	public void copy(StorageStrategy elements, int offset) {
-		if (elements instanceof LongArrayStore) {
-			System.arraycopy(((LongArrayStore) elements).store, 0, store, offset, elements.size());
+	public void copy(StorageStrategy src, int dstOffset, int srcOffset, int length) {
+		if (src instanceof LongArrayStore) {
+			System.arraycopy(((LongArrayStore) src).store, srcOffset, store, dstOffset, length);
 		} else {
-			super.copy(elements, offset);
+			super.copy(src, dstOffset, srcOffset, length);
 		}
 	}
 
 	@Override
 	public boolean isPositionIndependent() {
 		return true;
+	}
+
+	@Override
+	public int getWidth() {
+		return Long.SIZE;
 	}
 
 }

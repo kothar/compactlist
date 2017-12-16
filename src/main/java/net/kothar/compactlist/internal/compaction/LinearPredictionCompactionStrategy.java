@@ -1,6 +1,6 @@
 package net.kothar.compactlist.internal.compaction;
 
-public class LinearPredictionCompactionStrategy extends CompactionStrategy {
+public class LinearPredictionCompactionStrategy implements CompactionStrategy {
 
 	private long offset;
 	private double step;

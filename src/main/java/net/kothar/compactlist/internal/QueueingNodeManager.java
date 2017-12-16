@@ -1,8 +1,11 @@
 package net.kothar.compactlist.internal;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
 public class QueueingNodeManager implements NodeManager {
+
+	private static final long serialVersionUID = -4051190384126999869L;
 
 	private static final long COMPACT_DELAY = 32;
 	private static final long COMPACT_INTERVAL = 4;
@@ -13,7 +16,9 @@ public class QueueingNodeManager implements NodeManager {
 	long lastCompact;
 	long compactcount;
 
-	class DirtyNode {
+	class DirtyNode implements Serializable {
+		private static final long serialVersionUID = -1255913512025782817L;
+
 		Node node;
 		DirtyNode previous, next;
 		public long modifiedOp;
