@@ -3,31 +3,32 @@ package net.kothar.compactlist;
 import java.util.AbstractList;
 import java.util.Iterator;
 
-import net.kothar.compactlist.internal.LongArrayNode;
 import net.kothar.compactlist.internal.Node;
 import net.kothar.compactlist.internal.NodeManager;
-import net.kothar.compactlist.internal.NoopNodeManager;
+import net.kothar.compactlist.internal.QueueingNodeManager;
 
 public class CompactList extends AbstractList<Long> {
 
 	NodeManager manager;
-	Node<?> root;
+	Node root;
 
 	public CompactList() {
-		manager = new NoopNodeManager();
-		root = new LongArrayNode(null, manager);
+		this(new QueueingNodeManager());
+	}
+
+	public CompactList(NodeManager manager) {
+		this.manager = manager;
+		root = new Node(null, manager);
 	}
 
 	@Override
 	public void add(int index, Long element) {
-		root = root.addLong(index, element);
+		root.addLong(index, element);
 	}
 
 	@Override
 	public Long remove(int index) {
-		long v = root.getLong(index);
-		root = root.remove(index);
-		return v;
+		return root.remove(index);
 	}
 
 	@Override
@@ -37,9 +38,7 @@ public class CompactList extends AbstractList<Long> {
 
 	@Override
 	public Long set(int index, Long element) {
-		long v = root.getLong(index);
-		root = root.setLong(index, element);
-		return v;
+		return root.setLong(index, element);
 	}
 
 	@Override
@@ -51,6 +50,7 @@ public class CompactList extends AbstractList<Long> {
 	 * Tries to find more efficient in-memory representations for each list segment
 	 */
 	public void compact() {
+		manager.reset();
 		root.compact();
 	}
 

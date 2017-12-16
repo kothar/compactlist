@@ -7,7 +7,10 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LongArrayNodeTest {
+import net.kothar.compactlist.internal.storage.LongArrayStore;
+import net.kothar.compactlist.internal.storage.ShortArrayStore;
+
+public class NodeTest {
 
 	NodeManager manager;
 
@@ -18,7 +21,7 @@ public class LongArrayNodeTest {
 
 	@Test
 	public void testAdd() {
-		LongArrayNode node = new LongArrayNode(null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -29,7 +32,7 @@ public class LongArrayNodeTest {
 
 	@Test
 	public void testSet() {
-		LongArrayNode node = new LongArrayNode(null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -41,7 +44,7 @@ public class LongArrayNodeTest {
 
 	@Test
 	public void testRemove() {
-		LongArrayNode node = new LongArrayNode(null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 4);
 		node.addLong(1, 5);
@@ -58,7 +61,7 @@ public class LongArrayNodeTest {
 
 	@Test
 	public void testSplit() {
-		LongArrayNode node = new LongArrayNode(null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -77,7 +80,7 @@ public class LongArrayNodeTest {
 
 	@Test
 	public void testBalance() {
-		LongArrayNode node = new LongArrayNode(null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 0);
 		node.addLong(1, 1);
@@ -100,14 +103,14 @@ public class LongArrayNodeTest {
 
 	@Test
 	public void testMerge() {
-		Node<?> node = new LongArrayNode(null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
 
 		node.split(1);
 
-		node = node.merge();
+		node.merge();
 
 		assertEquals(2, node.size);
 		assertEquals(0, node.height);
@@ -116,36 +119,40 @@ public class LongArrayNodeTest {
 
 	@Test
 	public void testCompact() {
-		Node<?> node = new LongArrayNode(null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
 
-		Node<?> byteNode = node.compact();
-		assertEquals(2, byteNode.size());
-		assertEquals(6, byteNode.getLong(1));
-		assertTrue(byteNode instanceof ByteArrayNode);
+		node.compact();
+		assertEquals(2, node.size());
+		assertEquals(6, node.getLong(1));
+		assertFalse(node.elements instanceof LongArrayStore);
 
 		node.addLong(0, -512);
-		Node<?> intNode = node.compact();
-		assertEquals(3, intNode.size());
-		assertEquals(-512, intNode.getLong(0));
-		assertTrue(intNode instanceof ShortArrayNode);
+		node.addLong(1, Short.MAX_VALUE);
+		node.addLong(2, Short.MIN_VALUE);
+		node.compact();
+		assertEquals(5, node.size());
+		assertEquals(-512, node.getLong(0));
+		assertEquals(Short.MAX_VALUE, node.getLong(1));
+		assertEquals(Short.MIN_VALUE, node.getLong(2));
+		assertTrue(node.elements instanceof ShortArrayStore);
 	}
 
 	@Test
 	public void testUnCompact() {
-		Node<?> node = new ByteArrayNode(0, null, manager);
+		Node node = new Node(null, manager);
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
+		node.compact();
 
-		assertTrue(node instanceof ByteArrayNode);
+		assertFalse(node.elements.inRange(0, -512, false));
 
-		assertFalse(node.elementInRange(-512));
-		node = node.addLong(0, -512);
+		node.addLong(0, -512);
 		assertEquals(3, node.size());
 		assertEquals(-512, node.getLong(0));
-		assertTrue(node instanceof LongArrayNode);
+		assertTrue(node.elements.inRange(0, -512, true));
 	}
 }

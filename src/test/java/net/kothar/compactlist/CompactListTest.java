@@ -5,11 +5,17 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class CompactListTest {
 
 	private static final int BENCHMARK_COUNT = 6_000_000;
+
+	@Before
+	public void setup() {
+	}
 
 	@Test
 	public void testAdd() {
@@ -37,6 +43,8 @@ public class CompactListTest {
 		}
 
 		long elapsed = System.currentTimeMillis() - start;
+
+		System.gc();
 		long usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 		System.out.println("Inserted " + BENCHMARK_COUNT + " longs into ArrayList in " + elapsed + " ms. Using "
 				+ (usedMem >> 20) + " mb");
@@ -60,7 +68,7 @@ public class CompactListTest {
 	}
 
 	@Test
-	public void benchmarkLongArrayNode() {
+	public void benchmarkCompactList() {
 		CompactList list = new CompactList();
 		System.gc();
 		long start = System.currentTimeMillis();
@@ -70,8 +78,10 @@ public class CompactListTest {
 		}
 
 		long elapsed = System.currentTimeMillis() - start;
+
+		System.gc();
 		long usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		System.out.println("Inserted " + BENCHMARK_COUNT + " longs into LongArrayNode in " + elapsed + " ms. Using "
+		System.out.println("Inserted " + BENCHMARK_COUNT + " longs into CompactList in " + elapsed + " ms. Using "
 				+ (usedMem >> 20) + " mb");
 
 		start = System.currentTimeMillis();
@@ -82,8 +92,15 @@ public class CompactListTest {
 		elapsed = System.currentTimeMillis() - start;
 		System.out.println("Summed " + BENCHMARK_COUNT + " longs to " + total + " in " + elapsed + " ms.");
 
+		System.gc();
+		usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+		System.out.println("Using " + (usedMem >> 20) + " mb after summation");
+
 		// Compact
+		start = System.currentTimeMillis();
 		list.compact();
+		elapsed = System.currentTimeMillis() - start;
+		System.out.println("Compacted " + BENCHMARK_COUNT + " longs in " + elapsed + " ms.");
 
 		System.gc();
 		usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
@@ -105,5 +122,9 @@ public class CompactListTest {
 		elapsed = System.currentTimeMillis() - start;
 		System.out.println(
 				"Summed " + BENCHMARK_COUNT + " longs with iterator to " + total + " in " + elapsed + " ms.");
+	}
+
+	@After
+	public void cleanup() {
 	}
 }
