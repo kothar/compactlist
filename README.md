@@ -6,11 +6,10 @@ performance and memory usage compared to an `ArrayList`.
 Similar primitive container implementations can be found elsewhere, notably:
 
   * [Trove][1]
-  * [Guava Primitive Wrappers][2] ([More info][3])
+  * [Guava Primitive Wrappers][2]
   
 [1]: https://bitbucket.org/trove4j/trove
 [2]: https://google.github.io/guava/releases/19.0/api/docs/com/google/common/primitives/Ints.html#asList(int...)
-[3]: https://github.com/google/guava/wiki/PrimitivesExplained
 
 ## Performance
 
@@ -54,9 +53,6 @@ Storage strategies are implemented for word widths of 64, 32, 16, 8, 4 and 0 (co
 ![Memory usage during insertion](img/insertseq_mem.png)
 
 ## Compaction strategy
-
-The default instantiation of `CompactList` uses a queue of 'dirty' segments which will gradually be compacted as operations
-are executed which modify the list structure. This can be disabled by constructing the list with a `NoopNodeManager`.
 
 Lists can be compacted manually by calling `CompactList.compact()`.
 
