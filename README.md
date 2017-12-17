@@ -1,4 +1,4 @@
-#CompactList
+# CompactList
 
 CompactList implements the `List<Long>` interface, but internally it uses a tree of variable word-width segments to improve
 performance and memory usage compared to an `ArrayList`.
