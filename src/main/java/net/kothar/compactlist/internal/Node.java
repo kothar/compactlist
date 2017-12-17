@@ -27,26 +27,24 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	private static final long serialVersionUID = 3105932349913959938L;
 
-	private static final int MAX_LEAF_SIZE = 1 << 16;
-	private static final int MIN_SUBTREE_SIZE = 1_000;
+	private static final int TARGET_LEAF_SIZE = 1 << 16;
 
-	protected int size;
-	protected StorageStrategy elements;
-	protected Node left, right;
-	protected int height;
+	protected int				size;
+	protected StorageStrategy	elements;
+	protected Node				left, right;
+	protected int				height;
 
-	protected NodeManager manager;
-	protected Node parent;
-
-	public Node(Node parent, NodeManager manager) {
-		this(parent, manager, new LongArrayStore());
+	public Node() {
+		this(new LongArrayStore());
 	}
 
-	public Node(Node parent, NodeManager manager, StorageStrategy elements) {
-		this.parent = parent;
-		this.manager = manager;
+	public Node(StorageStrategy elements) {
 		this.elements = elements;
 		this.size = elements.size();
+	}
+
+	private boolean isLeaf() {
+		return left == null;
 	}
 
 	@Override
@@ -56,12 +54,10 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	@Override
 	public long getLong(int index) {
-		if (index >= size || index < 0) {
-			throw new ArrayIndexOutOfBoundsException(index);
-		}
+		assert index < size && index >= 0;
 
 		// Leaf
-		if (elements != null) {
+		if (isLeaf()) {
 			return elements.get(index);
 		}
 
@@ -76,18 +72,15 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	@Override
 	public long setLong(int index, long element) {
-		if (index > size || index < 0) {
-			throw new ArrayIndexOutOfBoundsException(index);
-		}
+		assert index <= size && index >= 0;
 
 		// Replace with non-compact representation if out of range
-		if (elements != null && !elements.inRange(index, element, true)) {
+		if (isLeaf() && !elements.inRange(index, element, true)) {
 			elements = new LongArrayStore(elements, 0, size);
-			manager.mark(this);
 		}
 
 		// Leaf
-		if (elements != null) {
+		if (isLeaf()) {
 			return elements.set(index, element);
 		} else if (index <= left.size) {
 			// Left branch
@@ -100,60 +93,65 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	@Override
 	public void addLong(int index, long element) {
-		if (index > size || index < 0) {
-			throw new ArrayIndexOutOfBoundsException(index);
+		assert index <= size && index >= 0;
+
+		if (!isLeaf()) {
+			addChild(index, element);
+			return;
 		}
 
 		// Split
-		if (elements != null && size >= MAX_LEAF_SIZE) {
-			if (index == 0 || index == size) {
-				split(size / 2);
+		if (isLeaf() && size >= TARGET_LEAF_SIZE) {
+			if (index == size && elements.capacity() > size) {
+				// Don't split if we have more capacity to append
 			} else {
 				split(index);
 			}
 		}
 
-		// Replace with non-compact representation if out of range
-		if (elements != null && !elements.inRange(index, element, false)) {
-			LongArrayStore newElements = new LongArrayStore(size + 1);
-			newElements.copy(elements, 0, 0, index);
-			newElements.set(index, element);
-			newElements.copy(elements, index + 1, index, size - index);
-			elements = newElements;
-			manager.mark(this);
-		}
-
-		// Leaf
-		else if (elements != null) {
-			elements.add(index, element);
-		} else if (index <= left.size) {
-			// Left branch
-			left.addLong(index, element);
+		if (isLeaf()) {
+			// Leaf
+			// Replace with non-compact representation if out of range
+			if (!elements.inRange(index, element, false)) {
+				LongArrayStore newElements = new LongArrayStore(size + 1);
+				newElements.copy(elements, 0, 0, index);
+				newElements.set(index, element);
+				newElements.copy(elements, index + 1, index, size - index);
+				elements = newElements;
+			} else {
+				elements.add(index, element);
+			}
+			size++;
 		} else {
+			addChild(index, element);
+		}
+	}
+
+	private void addChild(int index, long element) {
+		if (index > left.size || (index == left.size && right.size == 0)) {
 			// Right branch
 			right.addLong(index - left.size, element);
+		} else {
+			// Left branch
+			left.addLong(index, element);
 		}
-
 		size++;
 		balance();
 	}
 
 	@Override
 	public long removeLong(int index) {
-		if (index > size || index < 0) {
-			throw new ArrayIndexOutOfBoundsException(index);
-		}
+		assert index <= size && index >= 0;
 
 		// If we can't safely remove an element, decompact the store
-		if (elements != null && !elements.isPositionIndependent()) {
+		if (isLeaf() && !elements.isPositionIndependent()) {
 			elements = new LongArrayStore(elements);
-			manager.mark(this);
 		}
 
 		// Leaf
 		size--;
 		long oldValue;
-		if (elements != null) {
+		if (isLeaf()) {
 			return elements.remove(index);
 		} else if (index < left.size) {
 			// Left branch
@@ -163,29 +161,35 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			oldValue = right.removeLong(index - left.size);
 		}
 
-		if (size < MIN_SUBTREE_SIZE) {
+		if (size <= TARGET_LEAF_SIZE) {
+			// TODO do this as part of the pre-removal step
 			merge();
+		} else {
+			balance();
 		}
 
-		balance();
 		return oldValue;
 	}
 
 	protected void split(int pivot) {
-		if (elements != null) {
-			// Right node takes a copy of data after pivot
-			right = new Node(this, manager, new LongArrayStore(elements, pivot, size - pivot));
+		if (isLeaf()) {
+			if (pivot == size) {
+				left = new Node(elements);
+				right = new Node(new LongArrayStore());
+			} else if (pivot == 0) {
+				left = new Node(new LongArrayStore());
+				right = new Node(elements);
+			} else {
+				// Right node takes a copy of data after pivot
+				right = new Node(new LongArrayStore(elements, pivot, size - pivot));
 
-			// Left re-uses the current elements array
-			elements.setSize(pivot);
-			left = new Node(this, manager, elements);
+				// Left re-uses the current elements array
+				elements.setSize(pivot);
+				left = new Node(elements);
+			}
 
 			elements = null;
 			height = 1;
-
-			manager.unmark(this);
-			manager.mark(left);
-			manager.mark(right);
 
 		} else if (pivot < left.size) {
 			left.split(pivot);
@@ -207,32 +211,21 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		right = null;
 		height = 0;
 
-		balanceTree();
-
-		manager.mark(this);
 	}
 
 	protected void mergeElements(LongArrayStore target, int offset) {
-		if (elements != null) {
+		if (isLeaf()) {
 			if (size > 0) {
 				target.copy(elements, offset);
 			}
-			manager.unmark(this);
 		} else {
 			left.mergeElements(target, offset);
 			right.mergeElements(target, offset + left.size);
 		}
 	}
 
-	private void balanceTree() {
-		if (parent != null) {
-			parent.balance();
-			parent.balanceTree();
-		}
-	}
-
 	protected void balance() {
-		if (elements != null) {
+		if (isLeaf()) {
 			return;
 		}
 
@@ -245,7 +238,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			right = gamma;
 
 			left.update();
-
 		}
 
 		while (left.height - right.height > 1) {
@@ -259,28 +251,37 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			right.update();
 		}
 
-		update();
+		updateHeight();
+		assert size == left.size + right.size;
 	}
 
 	private void update() {
-		if (elements == null) {
-			height = Math.max(left.height, right.height) + 1;
-			size = left.size + right.size;
-		}
+		updateHeight();
+		updateSize();
+	}
+
+	private void updateSize() {
+		size = left.size + right.size;
+	}
+
+	private void updateHeight() {
+		height = Math.max(left.height, right.height) + 1;
 	}
 
 	public void compact() {
 		if (size == 0) {
-			// TODO edge case where all elements have been removed from a leaf
+			// Edge case where all elements have been removed from a leaf
+			elements = new ConstantStore(new OffsetCompactionStrategy(0), 0, 0);
 			return;
 		}
 
-		if (elements == null) {
-			if (size < MIN_SUBTREE_SIZE) {
+		if (!isLeaf()) {
+			if (size <= TARGET_LEAF_SIZE) {
 				merge();
 			} else {
 				left.compact();
 				right.compact();
+				balance();
 				return;
 			}
 		}
@@ -302,11 +303,11 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		}
 
 		CompactionStrategy[] strategies = new CompactionStrategy[] {
-				new OffsetCompactionStrategy(analysis),
-				new LinearPredictionCompactionStrategy(analysis)
+			new OffsetCompactionStrategy(analysis),
+			new LinearPredictionCompactionStrategy(analysis)
 		};
 		List<CompactionEvaluator> evaluators = Arrays.stream(strategies).map(CompactionEvaluator::new)
-				.collect(Collectors.toList());
+			.collect(Collectors.toList());
 
 		// Evaluate available compaction strategies
 		for (int i = 0; i < size && !evaluators.isEmpty(); i++) {
@@ -322,7 +323,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		if (evaluators.isEmpty()) {
 			// We may still be able to truncate the storage
 			if (elements instanceof LongArrayStore
-					&& elements.capacity() > elements.size() + AbstractStore.ALLOCATION_BUFFER) {
+				&& elements.capacity() > elements.size() + AbstractStore.ALLOCATION_BUFFER) {
 				elements = new LongArrayStore(elements);
 			}
 			return;
@@ -355,7 +356,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	}
 
 	public void print(String prefix, String indent) {
-		if (elements != null) {
+		if (isLeaf()) {
 			System.out.println(prefix + "h: 0 " + elements);
 		} else {
 			System.out.println(prefix + "h: " + height);
@@ -366,7 +367,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	@Override
 	public String toString() {
-		if (elements == null) {
+		if (!isLeaf()) {
 			return String.format("Node: height %d, size %d", height, size);
 		} else {
 			return String.format("Node: size %d, elements %s", size, elements);
@@ -382,8 +383,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		ArrayList<Node> stack = new ArrayList<>();
 
-		int pos, currentPos;
-		Node current;
+		int		pos, currentPos;
+		Node	current;
 
 		public NodeIterator() {
 			current = Node.this;
@@ -405,7 +406,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			}
 
 			// Move to the leftmost child
-			while (current.elements == null) {
+			while (!current.isLeaf()) {
 				stack.add(current);
 				current = current.left;
 			}
@@ -421,11 +422,9 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		public void remove() {
 			pos--;
 			currentPos--;
-			current.elements.remove(currentPos);
-			Node n = current;
-			while (n != null) {
+			current.removeLong(currentPos);
+			for (Node n : stack) {
 				n.size--;
-				n = n.parent;
 			}
 		}
 	}
@@ -438,7 +437,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			Node current = stack.remove(stack.size() - 1);
 
 			// Move to the leftmost child
-			while (current.elements == null) {
+			while (!current.isLeaf()) {
 				stack.add(current.right);
 				current = current.left;
 			}

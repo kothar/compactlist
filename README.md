@@ -21,7 +21,7 @@ elements are inserted or removed, or the allocated backing array is grown during
 The implementation currently splits segments at 2^16 elements, which is where performance gains for insertion start to appear.
 In the charts below, `CompactList` beats `ArrayList` when inserting ~2^17 or more elements.
 
-Benchmarks were run on a Xeon E3-1220 @3.1GHz running Windows 10 and Oracle Java 1.8.0_152-b16
+Benchmarks were run on a 2.2 GHz Intel Core i7 running MacOS 10.13.2 and Oracle Java 1.8.0_131-b11
  
 ### Append
 This benchmark appends sequential values to the end of the list.

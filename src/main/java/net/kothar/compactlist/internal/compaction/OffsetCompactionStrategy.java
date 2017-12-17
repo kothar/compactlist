@@ -2,7 +2,13 @@ package net.kothar.compactlist.internal.compaction;
 
 public class OffsetCompactionStrategy implements CompactionStrategy, PositionIndependentCompactionStrategy {
 
+	private static final long serialVersionUID = -4967610547335861332L;
+
 	private long offset;
+
+	public OffsetCompactionStrategy(long offset) {
+		this.offset = offset;
+	}
 
 	public OffsetCompactionStrategy(StorageAnalysis analysis) {
 		this.offset = analysis.min + (analysis.max - analysis.min) / 2;

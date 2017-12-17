@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -39,7 +40,7 @@ public class CompactListBenchmark {
 
 		System.out.println("Test\t\tCount\t\tClass\t\t\tElapsed");
 
-		HashMap<String, Test> tests = new HashMap<>();
+		Map<String, Test> tests = new LinkedHashMap<>();
 		tests.put("appendseq", appendSequential);
 		tests.put("insertseq", insertSequential);
 
@@ -49,9 +50,9 @@ public class CompactListBenchmark {
 			Map<Class<? extends LongList>, Map<Integer, Long>> testMemory = new HashMap<>();
 
 			for (Class<? extends LongList> impl : Arrays.asList(
-					ArrayListWrapper.class,
-					TroveListWrapper.class,
-					CompactList.class)) {
+				ArrayListWrapper.class,
+				TroveListWrapper.class,
+				CompactList.class)) {
 
 				TreeMap<Integer, Double> classData = new TreeMap<>();
 				testData.put(impl, classData);
@@ -60,14 +61,14 @@ public class CompactListBenchmark {
 
 				Test test = testEntry.getValue();
 
-				int increment = 1000;
-				for (int size = increment; size < 1 << 25; size += increment, increment += 10000) {
+				int increment = 10_000;
+				for (int size = increment; size < 1 << 26; size += increment, increment *= 1.2) {
 
 					test.init(impl, size);
 
 					double elapsed = time(
-							String.format("%s\t%10d\t%s", testEntry.getKey(), size, impl.getSimpleName()),
-							test);
+						String.format("%s\t%10d\t%s", testEntry.getKey(), size, impl.getSimpleName()),
+						test);
 
 					classData.put(size, elapsed);
 					classMemory.put(size, test.memoryUsage());
@@ -82,17 +83,17 @@ public class CompactListBenchmark {
 
 			// Create Chart
 			XYChart chart = new XYChartBuilder()
-					.title("Total test time: " + testEntry.getKey())
-					.xAxisTitle("List size")
-					.yAxisTitle("Total time (ms)")
-					.width(800)
-					.height(400)
-					.build();
+				.title("Total test time: " + testEntry.getKey())
+				.xAxisTitle("List size")
+				.yAxisTitle("Total time (ms)")
+				.width(800)
+				.height(400)
+				.build();
 
 			for (Entry<Class<? extends LongList>, Map<Integer, Double>> classData : testData.entrySet()) {
 				chart.addSeries(classData.getKey().getSimpleName(),
-						new ArrayList<Integer>(classData.getValue().keySet()),
-						new ArrayList<Double>(classData.getValue().values()));
+					new ArrayList<Integer>(classData.getValue().keySet()),
+					new ArrayList<Double>(classData.getValue().values()));
 			}
 
 			// Save it
@@ -100,21 +101,21 @@ public class CompactListBenchmark {
 
 			// Per op chart
 			chart = new XYChartBuilder()
-					.title("Average operation time: " + testEntry.getKey())
-					.xAxisTitle("List size")
-					.yAxisTitle("Average operation time (ms)")
-					.width(800)
-					.height(400)
-					.build();
+				.title("Average operation time: " + testEntry.getKey())
+				.xAxisTitle("List size")
+				.yAxisTitle("Average operation time (ms)")
+				.width(800)
+				.height(400)
+				.build();
 
 			chart.getStyler().setYAxisLogarithmic(true);
 
 			for (Entry<Class<? extends LongList>, Map<Integer, Double>> classData : testData.entrySet()) {
 				chart.addSeries(classData.getKey().getSimpleName(),
-						new ArrayList<Integer>(classData.getValue().keySet()),
-						classData.getValue().entrySet().stream()
-								.map(entry -> entry.getValue() / entry.getKey())
-								.collect(Collectors.toList()));
+					new ArrayList<Integer>(classData.getValue().keySet()),
+					classData.getValue().entrySet().stream()
+						.map(entry -> entry.getValue() / entry.getKey())
+						.collect(Collectors.toList()));
 			}
 
 			// Save it
@@ -123,17 +124,17 @@ public class CompactListBenchmark {
 
 			// Memory chart
 			chart = new XYChartBuilder()
-					.title("Memory usage: " + testEntry.getKey())
-					.xAxisTitle("List size")
-					.yAxisTitle("Memory usage (bytes)")
-					.width(800)
-					.height(400)
-					.build();
+				.title("Memory usage: " + testEntry.getKey())
+				.xAxisTitle("List size")
+				.yAxisTitle("Memory usage (bytes)")
+				.width(800)
+				.height(400)
+				.build();
 
 			for (Entry<Class<? extends LongList>, Map<Integer, Long>> classData : testMemory.entrySet()) {
 				chart.addSeries(classData.getKey().getSimpleName(),
-						new ArrayList<Integer>(classData.getValue().keySet()),
-						new ArrayList<Long>(classData.getValue().values()));
+					new ArrayList<Integer>(classData.getValue().keySet()),
+					new ArrayList<Long>(classData.getValue().values()));
 			}
 
 			// Save it
@@ -143,9 +144,9 @@ public class CompactListBenchmark {
 
 	private static Test appendSequential = new Test() {
 
-		private LongList list;
-		private int size;
-		private Class<? extends LongList> impl;
+		private LongList					list;
+		private int							size;
+		private Class<? extends LongList>	impl;
 
 		@Override
 		public void init(Class<? extends LongList> impl, int size) {
@@ -181,10 +182,10 @@ public class CompactListBenchmark {
 	};
 
 	private static Test insertSequential = new Test() {
-		private int size;
-		private Random r;
-		private LongList list;
-		private Class<? extends LongList> impl;
+		private int							size;
+		private Random						r;
+		private LongList					list;
+		private Class<? extends LongList>	impl;
 
 		@Override
 		public void run() {
@@ -227,19 +228,19 @@ public class CompactListBenchmark {
 		test.reset();
 
 		Runtime.getRuntime().gc();
-		long start = System.currentTimeMillis();
+		long start = System.nanoTime();
 		test.run();
-		long elapsed = System.currentTimeMillis() - start;
+		long elapsed = System.nanoTime() - start;
 		int runs = 1;
 
-		while (elapsed < 10) {
+		while (elapsed < 10_000_000) {
 			test.reset();
 			runs++;
 			test.run();
-			elapsed = System.currentTimeMillis() - start;
+			elapsed = System.nanoTime() - start;
 		}
 
-		double perRun = elapsed / (double) runs;
+		double perRun = elapsed / 1000000.0 / runs;
 		System.out.printf("%s\t%5.2f\n", desc, perRun);
 		return perRun;
 	}
@@ -251,20 +252,20 @@ public class CompactListBenchmark {
 				Field dataField = ArrayList.class.getDeclaredField("elementData");
 				dataField.setAccessible(true);
 				Object[] elements = (Object[]) dataField.get(list);
-				return elements.length * 4 + list.size() * 28;
+				return (long) elements.length * 4 + (long) list.size() * 28;
 			} else if (o instanceof TroveListWrapper) {
 				TLongArrayList list = ((TroveListWrapper) o).list;
 				Field dataField = TLongArrayList.class.getDeclaredField("_data");
 				dataField.setAccessible(true);
 				long[] elements = (long[]) dataField.get(list);
-				return elements.length * Long.BYTES;
+				return (long) elements.length * Long.BYTES;
 			} else if (o instanceof CompactList) {
 				Node node = ((CompactList) o).root;
 				LongHolder size = new LongHolder();
 				node.walk(leaf -> {
 					StorageStrategy storageStrategy = leaf.getStorageStrategy();
 					if (storageStrategy != null) {
-						size.value += leaf.size() * storageStrategy.getWidth() / 8;
+						size.value += (long) leaf.size() * storageStrategy.getWidth() / 8;
 					}
 				});
 				return size.value;

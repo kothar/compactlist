@@ -12,16 +12,13 @@ import net.kothar.compactlist.internal.storage.ShortArrayStore;
 
 public class NodeTest {
 
-	NodeManager manager;
-
 	@Before
 	public void setup() {
-		manager = new QueueingNodeManager();
 	}
 
 	@Test
 	public void testAdd() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -32,7 +29,7 @@ public class NodeTest {
 
 	@Test
 	public void testSet() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -44,7 +41,7 @@ public class NodeTest {
 
 	@Test
 	public void testRemove() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 4);
 		node.addLong(1, 5);
@@ -61,7 +58,7 @@ public class NodeTest {
 
 	@Test
 	public void testSplit() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -80,7 +77,7 @@ public class NodeTest {
 
 	@Test
 	public void testBalance() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 0);
 		node.addLong(1, 1);
@@ -103,7 +100,7 @@ public class NodeTest {
 
 	@Test
 	public void testMerge() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -119,7 +116,7 @@ public class NodeTest {
 
 	@Test
 	public void testCompact() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);
@@ -142,7 +139,7 @@ public class NodeTest {
 
 	@Test
 	public void testUnCompact() {
-		Node node = new Node(null, manager);
+		Node node = new Node();
 
 		node.addLong(0, 6);
 		node.addLong(0, 5);

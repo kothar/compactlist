@@ -9,8 +9,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import net.kothar.compactlist.internal.NoopNodeManager;
-
 public class CompactListTest {
 
 	private static final int BENCHMARK_COUNT = 6_000_000;
@@ -49,7 +47,7 @@ public class CompactListTest {
 		System.gc();
 		long usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 		System.out.println("Inserted " + BENCHMARK_COUNT + " longs into ArrayList in " + elapsed + " ms. Using "
-				+ (usedMem >> 20) + " mb");
+			+ (usedMem >> 20) + " mb");
 
 		start = System.currentTimeMillis();
 		long total = 0;
@@ -66,12 +64,12 @@ public class CompactListTest {
 		}
 		elapsed = System.currentTimeMillis() - start;
 		System.out
-				.println("Summed " + BENCHMARK_COUNT + " longs with iterator to " + total + " in " + elapsed + " ms.");
+			.println("Summed " + BENCHMARK_COUNT + " longs with iterator to " + total + " in " + elapsed + " ms.");
 	}
 
 	@Test
 	public void benchmarkCompactList() {
-		CompactList list = new CompactList(new NoopNodeManager());
+		CompactList list = new CompactList();
 		System.gc();
 		long start = System.currentTimeMillis();
 
@@ -84,7 +82,7 @@ public class CompactListTest {
 		System.gc();
 		long usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 		System.out.println("Inserted " + BENCHMARK_COUNT + " longs into CompactList in " + elapsed + " ms. Using "
-				+ (usedMem >> 20) + " mb");
+			+ (usedMem >> 20) + " mb");
 
 		start = System.currentTimeMillis();
 		long total = 0;
@@ -123,7 +121,7 @@ public class CompactListTest {
 		}
 		elapsed = System.currentTimeMillis() - start;
 		System.out.println(
-				"Summed " + BENCHMARK_COUNT + " longs with iterator to " + total + " in " + elapsed + " ms.");
+			"Summed " + BENCHMARK_COUNT + " longs with iterator to " + total + " in " + elapsed + " ms.");
 	}
 
 	@After

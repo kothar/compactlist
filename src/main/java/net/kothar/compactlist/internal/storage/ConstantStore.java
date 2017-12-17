@@ -4,18 +4,26 @@ import net.kothar.compactlist.internal.compaction.CompactionStrategy;
 
 public class ConstantStore extends AbstractStore {
 
-	private long compactValue;
-	private CompactionStrategy strategy;
+	private long				compactValue;
+	private CompactionStrategy	strategy;
+
+	public ConstantStore(CompactionStrategy strategy, long compactValue, int size) {
+		super();
+		this.strategy = strategy;
+		this.compactValue = compactValue;
+		this.size = size;
+	}
 
 	public ConstantStore(CompactionStrategy strategy, StorageStrategy elements) {
 		super();
 		this.strategy = strategy;
 		this.compactValue = strategy.getCompactValue(0, elements.get(0));
+		this.size = elements.size();
 	}
 
 	@Override
 	public void allocate(int size) {
-		// nothing to do
+		this.size = size;
 	}
 
 	@Override

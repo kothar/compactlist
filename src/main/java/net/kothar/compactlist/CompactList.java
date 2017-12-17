@@ -5,23 +5,15 @@ import java.util.AbstractList;
 import java.util.Iterator;
 
 import net.kothar.compactlist.internal.Node;
-import net.kothar.compactlist.internal.NodeManager;
-import net.kothar.compactlist.internal.QueueingNodeManager;
 
 public class CompactList extends AbstractList<Long> implements LongList, Serializable {
 
 	private static final long serialVersionUID = -3558458042495888205L;
 
-	NodeManager manager;
 	Node root;
 
 	public CompactList() {
-		this(new QueueingNodeManager());
-	}
-
-	public CompactList(NodeManager manager) {
-		this.manager = manager;
-		root = new Node(null, manager);
+		root = new Node();
 	}
 
 	@Override
@@ -31,6 +23,9 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 
 	@Override
 	public void addLong(int index, long element) {
+		if (index > size() || index < 0) {
+			throw new ArrayIndexOutOfBoundsException(index);
+		}
 		root.addLong(index, element);
 	}
 
@@ -41,6 +36,9 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 
 	@Override
 	public long removeLong(int index) {
+		if (index >= size() || index < 0) {
+			throw new ArrayIndexOutOfBoundsException(index);
+		}
 		return root.removeLong(index);
 	}
 
@@ -51,6 +49,9 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 
 	@Override
 	public long getLong(int index) {
+		if (index >= size() || index < 0) {
+			throw new ArrayIndexOutOfBoundsException(index);
+		}
 		return root.getLong(index);
 	}
 
@@ -61,6 +62,9 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 
 	@Override
 	public long setLong(int index, long element) {
+		if (index >= size() || index < 0) {
+			throw new ArrayIndexOutOfBoundsException(index);
+		}
 		return root.setLong(index, element);
 	}
 
@@ -73,13 +77,12 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 	 * Tries to find more efficient in-memory representations for each list segment
 	 */
 	public void compact() {
-		manager.reset();
 		root.compact();
 	}
 
 	/**
-	 * The iterator used here maintains its position in the tree, making it slightly
-	 * more efficient than repeatedly calling get over the range of indices.
+	 * The iterator used here maintains its position in the tree, making it slightly more efficient
+	 * than repeatedly calling get over the range of indices.
 	 */
 	@Override
 	public Iterator<Long> iterator() {
