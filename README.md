@@ -21,21 +21,35 @@ The implementation currently splits segments at 2^16 elements, which is where pe
 In the charts below, `CompactList` beats `ArrayList` when inserting ~2^17 or more elements.
 
 Benchmarks were run on a 2.2 GHz Intel Core i7 running MacOS 10.13.2 and Oracle Java 1.8.0_131-b11
+
+`mvn exec:exec` will run the benchmarks.
  
 ### Append
 This benchmark appends sequential values to the end of the list.
 
-![Total time for sequential append](img/appendseq.png)
-![Average operation time for sequential append](img/appendseq_op.png)
+![Total time for sequential append](img/append.png)
+![Average operation time for sequential append](img/append_op.png)
 
 ### Insert
 This benchmark inserts sequential values at random locations as the list grows
 
-![Total time for sequential insert](img/insertseq.png)
-![Average operation time for sequential insert](img/insertseq_op.png)
+![Total time for sequential insert](img/insert.png)
+![Average operation time for sequential insert](img/insert_op.png)
 
 ### Remove
+This benchmark creates a list of sequential values by appending, then removes
+elements at random indices until the list is empty.
+
+![Total time for random removal](img/remove.png)
+![Average operation time for random removal](img/remove_op.png)
+
 ### Set
+This benchmark creates a list of sequential values by appending, then sets
+elements at random indices a number of times equal to the size of the list.
+
+![Total time for random set](img/remove.png)
+![Average operation time for random set](img/remove_op.png)
+
 ### Iteration
 
 ## Memory usage
@@ -49,8 +63,10 @@ is close to the underlying storage size for the smallest word width capable of s
 
 Storage strategies are implemented for word widths of 64, 32, 16, 8, 4 and 0 (constant value).
 
-![Memory usage during append](img/appendseq_mem.png)
-![Memory usage during insertion](img/insertseq_mem.png)
+![Memory usage after append](img/append_mem.png)
+![Memory usage after insertion](img/insert_mem.png)
+![Memory usage after removal](img/remove_mem.png)
+![Memory usage after set](img/insert_mem.png)
 
 ## Compaction strategy
 
