@@ -1,6 +1,6 @@
 package net.kothar.compactlist;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +30,37 @@ public class CompactListTest {
 
 		System.out.println(list);
 		assertTrue(Arrays.asList(1L, 2L, 5L, 3L, 4L).equals(list));
+	}
+
+	@Test
+	public void testSet() {
+		CompactList list = new CompactList();
+
+		list.add(1L);
+		list.add(2L);
+		list.add(3L);
+		list.add(4L);
+		
+		list.set(1, 8L);
+
+		System.out.println(list);
+		assertTrue(Arrays.asList(1L, 8L, 3L, 4L).equals(list));
+	}
+
+	@Test
+	public void test_set_last_element() {
+		CompactList list = new CompactList();
+
+		for (int i = 0; i <= 1<<16; i++) {
+			list.addLong(i);
+			list.setLong(i, 0L);
+			assertEquals(0L, list.getLong(list.size() - 1));
+		}
+	}
+	
+	@Test
+	public void test_set_beyond_size() {
+		// TODO
 	}
 
 	@Test

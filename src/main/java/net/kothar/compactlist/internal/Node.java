@@ -72,7 +72,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	@Override
 	public long setLong(int index, long element) {
-		assert index <= size && index >= 0;
+		assert index < size && index >= 0;
 
 		// Replace with non-compact representation if out of range
 		if (isLeaf() && !elements.inRange(index, element, true)) {
@@ -82,7 +82,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		// Leaf
 		if (isLeaf()) {
 			return elements.set(index, element);
-		} else if (index <= left.size) {
+		} else if (index < left.size) {
 			// Left branch
 			return left.setLong(index, element);
 		} else {
@@ -141,7 +141,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	@Override
 	public long removeLong(int index) {
-		assert index <= size && index >= 0;
+		assert index < size && index >= 0;
 
 		// If we can't safely remove an element, decompact the store
 		if (isLeaf() && !elements.isPositionIndependent()) {
