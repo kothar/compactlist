@@ -11,6 +11,18 @@ Similar primitive container implementations can be found elsewhere, notably:
 [1]: https://bitbucket.org/trove4j/trove
 [2]: https://google.github.io/guava/releases/19.0/api/docs/com/google/common/primitives/Ints.html#asList(int...)
 
+## Maven
+
+This project is published to Maven Central via Sonatype OSSRH
+
+```
+<dependency>
+  <groupId>net.kothar</groupId>
+  <artifactId>compactlist</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
 ## Performance
 
 Performance of `CompactList` tends to be worse than `ArrayList` for small lists, but gains an advantage as list
