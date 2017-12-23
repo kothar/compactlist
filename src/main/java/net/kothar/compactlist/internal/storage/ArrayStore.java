@@ -51,10 +51,10 @@ public abstract class ArrayStore<T> extends AbstractStore {
 	}
 
 	/**
-	 * Expands the given array if necessary and leaves a new slot at the given index
+	 * Expands the store if necessary and leaves a new slot at the given index
 	 * 
-	 * @param array
 	 * @param index
+	 *            The position to insert a gap
 	 */
 	protected void expand(int index) {
 		T newStore = store;

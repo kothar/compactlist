@@ -9,21 +9,25 @@
 	<url>https://kothar.net/compactlist</url>
 	<description>An efficient in-memory implementation of List&lt;Long&gt; aiming for minimum memory usage and good insert/remove performance.</description>
 
-	<organization>
-		<name>Kothar Labs</name>
-		<url>https://kothar.net</url>
-	</organization>
+	<developers>
+		<developer>
+			<name>Michael Houston</name>
+			<email>mike@kothar.net</email>
+			<organization>Kothar Labs</organization>
+			<organizationUrl>https://kothar.net</organizationUrl>
+		</developer>
+	</developers>
 
 	<licenses>
 		<license>
 			<name>The MIT License</name>
 			<url>https://opensource.org/licenses/MIT</url>
-			<distribution>repo</distribution>
 		</license>
 	</licenses>
 
 	<scm>
 		<url>https://github.com/kothar/compactlist</url>
+		<developerConnection>scm:git:git@github.com:kothar/compactlist.git</developerConnection>
 	</scm>
 
 	<issueManagement>
@@ -61,8 +65,80 @@
 
 	</dependencies>
 
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 	<build>
 		<plugins>
+			<!-- Release management -->
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.7</version>
+				<extensions>true</extensions>
+				<configuration>
+					<serverId>ossrh</serverId>
+					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+					<autoReleaseAfterClose>true</autoReleaseAfterClose>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>2.2.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>1.5</version>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.5.3</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.maven.scm</groupId>
+						<artifactId>maven-scm-provider-gitexe</artifactId>
+						<version>1.9</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+
+			<!-- Benchmarking -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>

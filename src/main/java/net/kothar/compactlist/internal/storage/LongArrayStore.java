@@ -21,8 +21,11 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	 * Creates a new store from a subrange of an existing store
 	 * 
 	 * @param elements
+	 *            An existing store to copy elements from
 	 * @param offset
+	 *            The location to start copying elements
 	 * @param size
+	 *            The number of elements to copy
 	 */
 	public LongArrayStore(StorageStrategy elements, int offset, int size) {
 		super(size, size + ALLOCATION_BUFFER);
