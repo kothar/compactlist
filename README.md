@@ -59,8 +59,8 @@ elements at random indices until the list is empty.
 This benchmark creates a list of sequential values by appending, then sets
 elements at random indices a number of times equal to the size of the list.
 
-![Total time for random set](img/remove.png)
-![Average operation time for random set](img/remove_op.png)
+![Total time for random set](img/set.png)
+![Average operation time for random set](img/set_op.png)
 
 ### Iteration
 
@@ -78,7 +78,7 @@ Storage strategies are implemented for word widths of 64, 32, 16, 8, 4 and 0 (co
 ![Memory usage after append](img/append_mem.png)
 ![Memory usage after insertion](img/insert_mem.png)
 ![Memory usage after removal](img/remove_mem.png)
-![Memory usage after set](img/insert_mem.png)
+![Memory usage after set](img/set_mem.png)
 
 ## Compaction strategy
 
