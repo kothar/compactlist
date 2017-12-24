@@ -28,8 +28,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	private static final long serialVersionUID = 3105932349913959938L;
 
 	private static final int	READ_COMPACTION_DELAY	= 1 << 10;
-	private static final int	WRITE_COMPACTION_DELAY	= 1 << 13;
 	private static final int	TARGET_LEAF_SIZE		= 1 << 16;
+	private static final int	MAX_LEAF_SIZE			= 1 << 20;
 
 	protected int				size;
 	protected StorageStrategy	elements;
@@ -115,8 +115,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		// Split
 		if (isLeaf() && size >= TARGET_LEAF_SIZE) {
-			if (index == size && elements.capacity() > size) {
-				// Don't split if we have more capacity to append
+			if (index == size && size < MAX_LEAF_SIZE) {
+				// Don't split if we are appending
 			} else {
 				split(index);
 			}
@@ -127,7 +127,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			lastWrite = ++operation;
 
 			// Replace with non-compact representation if out of range
-			if (!elements.inRange(index, element, false)) {
+			if (!elements.inRange(index, element, index < size)) {
 				LongArrayStore newElements = new LongArrayStore(size + 1);
 				newElements.copy(elements, 0, 0, index);
 				newElements.set(index, element);
@@ -138,10 +138,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 				elements.add(index, element);
 			}
 			size++;
-
-			if (dirty && lastWrite - lastCompaction > WRITE_COMPACTION_DELAY) {
-				compact();
-			}
 		} else {
 			addChild(index, element);
 		}
@@ -164,7 +160,20 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		assert index < size && index >= 0;
 
 		// If we can't safely remove an element, decompact the store
-		if (isLeaf() && !elements.isPositionIndependent()) {
+		if (isLeaf() && index < size - 1 && !elements.isPositionIndependent()) {
+			if (size > TARGET_LEAF_SIZE) {
+				if (index > TARGET_LEAF_SIZE && size - index > TARGET_LEAF_SIZE) {
+					// Both sides will be large enough
+					split(index + 1);
+					size--;
+					return left.removeLong(index);
+				} else {
+					// Don't make segments too small
+					split(size / 2);
+					return removeLong(index);
+				}
+			}
+
 			elements = new LongArrayStore(elements);
 			dirty = true;
 		}

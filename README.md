@@ -25,9 +25,10 @@ This project is published to Maven Central via Sonatype OSSRH
 
 ## Performance
 
-Performance of `CompactList` tends to be worse than `ArrayList` for small lists, but gains an advantage as list
-size increases. This is mainly due to the tree structure which limits the amount of memory that needs to be copied when
-elements are inserted or removed, or the allocated backing array is grown during an append.
+Performance of `CompactList` tends to be worse than `ArrayList` for small lists, but gains an advantage 
+for random inserts as list size increases. This is mainly due to the tree structure which limits the
+amount of memory that needs to be copied when elements are inserted or removed, or the allocated backing 
+array is grown during an append.
 
 The implementation currently splits segments at 2^16 elements, which is where performance gains for insertion start to appear.
 In the charts below, `CompactList` beats `ArrayList` when inserting ~2^17 or more elements.

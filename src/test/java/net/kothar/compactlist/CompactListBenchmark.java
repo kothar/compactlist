@@ -38,7 +38,7 @@ public class CompactListBenchmark {
 
 	public static void main(String[] args) throws IOException {
 
-		int maxListSize = 19;
+		int maxListSize = 21;
 		if (args.length > 0) {
 			maxListSize = Integer.parseInt(args[0]);
 		}
@@ -47,10 +47,11 @@ public class CompactListBenchmark {
 		System.out.println("Test\t\tCount\t\tClass\t\t\tElapsed");
 
 		Map<String, Test> tests = new LinkedHashMap<>();
-		tests.put("set", setRandom);
-		tests.put("remove", removeRandom);
 		tests.put("append", appendSequential);
+		tests.put("appendRandom", appendRandom);
 		tests.put("insert", insertSequential);
+		tests.put("set", setSeq);
+		tests.put("remove", removeRandom);
 
 		for (Entry<String, Test> testEntry : tests.entrySet()) {
 
@@ -81,7 +82,7 @@ public class CompactListBenchmark {
 					classData.put(size, elapsed);
 					classMemory.put(size, test.memoryUsage());
 
-					if (elapsed > 10_000) {
+					if (elapsed > 5_000) {
 						break;
 					}
 				}
@@ -189,6 +190,48 @@ public class CompactListBenchmark {
 		}
 	};
 
+	private static Test appendRandom = new Test() {
+
+		private LongList					list;
+		private int							size;
+		private Random						r;
+		private Class<? extends LongList>	impl;
+
+		@Override
+		public void init(Class<? extends LongList> impl, int size) {
+			this.impl = impl;
+			this.size = size;
+		}
+
+		@Override
+		public void run() {
+			for (int i = 0; i < size; i++) {
+				list.addLong(r.nextInt(size));
+			}
+		}
+
+		@Override
+		public void reset() {
+			try {
+				r = new Random(size);
+				list = impl.newInstance();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void clear() {
+			list = null;
+			r = null;
+		}
+
+		@Override
+		public long memoryUsage() {
+			return sizeof(list);
+		}
+	};
+
 	private static Test insertSequential = new Test() {
 		private int							size;
 		private Random						r;
@@ -256,7 +299,7 @@ public class CompactListBenchmark {
 				r = new Random(size);
 				list = impl.newInstance();
 				for (long i = 0; i < size; i++) {
-					list.addLong(i);
+					list.addLong(r.nextInt(size));
 				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -275,7 +318,7 @@ public class CompactListBenchmark {
 		}
 	};
 
-	private static Test setRandom = new Test() {
+	private static Test setSeq = new Test() {
 		private int							size;
 		private Random						r;
 		private LongList					list;
@@ -301,6 +344,50 @@ public class CompactListBenchmark {
 				list = impl.newInstance();
 				for (long i = 0; i < size; i++) {
 					list.addLong(i);
+				}
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void clear() {
+			list = null;
+			r = null;
+		}
+
+		@Override
+		public long memoryUsage() {
+			return sizeof(list);
+		}
+	};
+
+	private static Test setRand = new Test() {
+		private int							size;
+		private Random						r;
+		private LongList					list;
+		private Class<? extends LongList>	impl;
+
+		@Override
+		public void run() {
+			for (long i = 0; i < size; i++) {
+				list.setLong(r.nextInt(list.size()), i);
+			}
+		}
+
+		@Override
+		public void init(Class<? extends LongList> impl, int size) {
+			this.impl = impl;
+			this.size = size;
+		}
+
+		@Override
+		public void reset() {
+			try {
+				r = new Random(size);
+				list = impl.newInstance();
+				for (long i = 0; i < size; i++) {
+					list.addLong(r.nextInt(size));
 				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
