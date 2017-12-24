@@ -27,24 +27,24 @@ public class ConstantStore extends AbstractStore {
 	}
 
 	@Override
-	public long get(int index) {
+	public long getLong(int index) {
 		return strategy.getRealValue(index, compactValue);
 	}
 
 	@Override
-	public void add(int index, long value) {
+	public void addLong(int index, long value) {
 		assert strategy.getCompactValue(index, value) == this.compactValue;
 		size++;
 	}
 
 	@Override
-	public long set(int index, long value) {
+	public long setLong(int index, long value) {
 		assert strategy.getCompactValue(index, value) == this.compactValue;
 		return value;
 	}
 
 	@Override
-	public long remove(int index) {
+	public long removeLong(int index) {
 		size--;
 		return compactValue;
 	}

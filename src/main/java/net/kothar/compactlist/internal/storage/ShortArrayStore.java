@@ -18,7 +18,7 @@ public class ShortArrayStore extends CompactArrayStore<short[]> {
 	}
 
 	@Override
-	public long get(int index) {
+	public long getLong(int index) {
 		return strategy.getRealValue(index, store[index] & 0xFFFFL);
 	}
 

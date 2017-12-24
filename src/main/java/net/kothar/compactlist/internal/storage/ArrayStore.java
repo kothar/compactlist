@@ -30,21 +30,21 @@ public abstract class ArrayStore<T> extends AbstractStore {
 	}
 
 	@Override
-	public void add(int index, long value) {
+	public void addLong(int index, long value) {
 		expand(index);
 		setElement(index, value);
 	}
 
 	@Override
-	public long set(int index, long value) {
-		long oldValue = get(index);
+	public long setLong(int index, long value) {
+		long oldValue = getLong(index);
 		setElement(index, value);
 		return oldValue;
 	}
 
 	@Override
-	public long remove(int index) {
-		long oldValue = get(index);
+	public long removeLong(int index) {
+		long oldValue = getLong(index);
 		System.arraycopy(store, index + 1, store, index, size - index - 1);
 		size--;
 		return oldValue;
@@ -82,7 +82,7 @@ public abstract class ArrayStore<T> extends AbstractStore {
 			if (str.length() > 0) {
 				str.append(", ");
 			}
-			str.append(get(i));
+			str.append(getLong(i));
 		}
 		return String.format("%s: [%s]", getClass().getSimpleName(), str);
 	}

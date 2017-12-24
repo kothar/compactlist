@@ -14,7 +14,7 @@ public class NibbleArrayStore extends CompactArrayStore<byte[]> {
 	}
 
 	@Override
-	public long get(int index) {
+	public long getLong(int index) {
 		byte value = store[index / 2];
 		long nibble;
 		if (index % 2 == 0) {

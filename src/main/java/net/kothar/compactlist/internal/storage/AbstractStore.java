@@ -1,8 +1,9 @@
 package net.kothar.compactlist.internal.storage;
 
+import java.util.AbstractList;
 import java.util.Iterator;
 
-public abstract class AbstractStore implements StorageStrategy {
+public abstract class AbstractStore extends AbstractList<Long> implements StorageStrategy {
 
 	private static final long serialVersionUID = -4353672868307014379L;
 
@@ -57,4 +58,30 @@ public abstract class AbstractStore implements StorageStrategy {
 			set(dstOffset + i, src.get(srcOffset + i));
 		}
 	}
+
+	@Override
+	public Long get(int index) {
+		return getLong(index);
+	}
+
+	@Override
+	public Long set(int index, Long element) {
+		return setLong(index, element);
+	}
+
+	@Override
+	public void add(int index, Long element) {
+		addLong(index, element);
+	}
+
+	@Override
+	public Long remove(int index) {
+		return removeLong(index);
+	}
+
+	@Override
+	public void clear() {
+		setSize(0);
+	}
+
 }

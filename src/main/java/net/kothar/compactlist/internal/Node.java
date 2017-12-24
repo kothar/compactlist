@@ -3,6 +3,8 @@ package net.kothar.compactlist.internal;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
@@ -492,5 +494,30 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	public StorageStrategy getStorageStrategy() {
 		return elements;
+	}
+
+	/**
+	 * Performs a binary search in the node to locate the index of the given value.
+	 * <p>
+	 * Assumes that the values are in ascending order.
+	 * 
+	 * @param value
+	 *            The value to search for
+	 * @return The index of the value. If not found, returns -1 minus the index at which it should
+	 *         be inserted.
+	 */
+	public int searchLong(long value) {
+		if (isLeaf()) {
+			return Collections.binarySearch(elements, value, Comparator.naturalOrder());
+		}
+
+		if (right.size > 0 && right.getLong(0) >= value) {
+			int index = right.searchLong(value);
+			index += index < 0 ? -left.size : left.size;
+			return index;
+		} else if (left.size > 0) {
+			return left.searchLong(value);
+		}
+		return -1;
 	}
 }

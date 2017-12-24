@@ -40,7 +40,7 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	}
 
 	@Override
-	public long get(int index) {
+	public long getLong(int index) {
 		return store[index];
 	}
 
