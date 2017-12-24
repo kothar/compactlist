@@ -1,5 +1,7 @@
 # CompactList
 
+[![Build Status](https://travis-ci.org/kothar/compactlist.svg?branch=master)](https://travis-ci.org/kothar/compactlist)
+
 CompactList implements the `List<Long>` interface, but internally it uses a tree of variable word-width segments to improve
 performance and memory usage compared to an `ArrayList`.
 
