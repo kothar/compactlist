@@ -13,6 +13,10 @@ public class ByteArrayStore extends CompactArrayStore<byte[]> {
 		copy(elements, 0);
 	}
 
+	public ByteArrayStore(StorageStrategy elements, int offset, int size) {
+		super(elements, offset, size);
+	}
+
 	@Override
 	public long get(int index) {
 		return strategy.getRealValue(index, store[index] & 0xFFL);

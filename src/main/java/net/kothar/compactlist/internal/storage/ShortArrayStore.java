@@ -13,6 +13,10 @@ public class ShortArrayStore extends CompactArrayStore<short[]> {
 		copy(elements, 0);
 	}
 
+	public ShortArrayStore(StorageStrategy elements, int offset, int size) {
+		super(elements, offset, size);
+	}
+
 	@Override
 	public long get(int index) {
 		return strategy.getRealValue(index, store[index] & 0xFFFFL);

@@ -27,12 +27,19 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	private static final long serialVersionUID = 3105932349913959938L;
 
-	private static final int TARGET_LEAF_SIZE = 1 << 16;
+	private static final int	READ_COMPACTION_DELAY	= 1 << 10;
+	private static final int	WRITE_COMPACTION_DELAY	= 1 << 13;
+	private static final int	TARGET_LEAF_SIZE		= 1 << 16;
 
 	protected int				size;
 	protected StorageStrategy	elements;
 	protected Node				left, right;
 	protected int				height;
+	protected boolean			dirty	= true;
+	protected long				operation,
+		lastRead,
+		lastWrite,
+		lastCompaction;
 
 	public Node() {
 		this(new LongArrayStore());
@@ -58,6 +65,10 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		// Leaf
 		if (isLeaf()) {
+			lastRead = ++operation;
+			if (dirty && lastRead - lastWrite > READ_COMPACTION_DELAY) {
+				compact();
+			}
 			return elements.get(index);
 		}
 
@@ -77,10 +88,12 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		// Replace with non-compact representation if out of range
 		if (isLeaf() && !elements.inRange(index, element, true)) {
 			elements = new LongArrayStore(elements, 0, size);
+			dirty = true;
 		}
 
 		// Leaf
 		if (isLeaf()) {
+			lastWrite = ++operation;
 			return elements.set(index, element);
 		} else if (index < left.size) {
 			// Left branch
@@ -111,6 +124,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		if (isLeaf()) {
 			// Leaf
+			lastWrite = ++operation;
+
 			// Replace with non-compact representation if out of range
 			if (!elements.inRange(index, element, false)) {
 				LongArrayStore newElements = new LongArrayStore(size + 1);
@@ -118,10 +133,15 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 				newElements.set(index, element);
 				newElements.copy(elements, index + 1, index, size - index);
 				elements = newElements;
+				dirty = true;
 			} else {
 				elements.add(index, element);
 			}
 			size++;
+
+			if (dirty && lastWrite - lastCompaction > WRITE_COMPACTION_DELAY) {
+				compact();
+			}
 		} else {
 			addChild(index, element);
 		}
@@ -146,12 +166,14 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		// If we can't safely remove an element, decompact the store
 		if (isLeaf() && !elements.isPositionIndependent()) {
 			elements = new LongArrayStore(elements);
+			dirty = true;
 		}
 
 		// Leaf
 		size--;
 		long oldValue;
 		if (isLeaf()) {
+			lastWrite = ++operation;
 			return elements.remove(index);
 		} else if (index < left.size) {
 			// Left branch
@@ -176,9 +198,11 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			if (pivot == size) {
 				left = new Node(elements);
 				right = new Node(new LongArrayStore());
+				left.compact();
 			} else if (pivot == 0) {
 				left = new Node(new LongArrayStore());
 				right = new Node(elements);
+				right.compact();
 			} else {
 				// Right node takes a copy of data after pivot
 				right = new Node(new LongArrayStore(elements, pivot, size - pivot));
@@ -210,7 +234,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		left = null;
 		right = null;
 		height = 0;
-
+		dirty = true;
+		lastWrite = lastRead = operation = 0;
 	}
 
 	protected void mergeElements(LongArrayStore target, int offset) {
@@ -269,11 +294,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	}
 
 	public void compact() {
-		if (size == 0) {
-			// Edge case where all elements have been removed from a leaf
-			elements = new ConstantStore(new OffsetCompactionStrategy(0), 0, 0);
-			return;
-		}
 
 		if (!isLeaf()) {
 			if (size <= TARGET_LEAF_SIZE) {
@@ -286,72 +306,87 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			}
 		}
 
-		// Analyse the values in this node
-		StorageAnalysis analysis = new StorageAnalysis();
-		analysis.size = size;
-		analysis.first = elements.get(0);
-		analysis.last = elements.get(size - 1);
-
-		for (int i = 0; i < size; i++) {
-			long v = elements.get(i);
-			if (v < analysis.min) {
-				analysis.min = v;
-			}
-			if (v > analysis.max) {
-				analysis.max = v;
-			}
-		}
-
-		CompactionStrategy[] strategies = new CompactionStrategy[] {
-			new OffsetCompactionStrategy(analysis),
-			new LinearPredictionCompactionStrategy(analysis)
-		};
-		List<CompactionEvaluator> evaluators = Arrays.stream(strategies).map(CompactionEvaluator::new)
-			.collect(Collectors.toList());
-
-		// Evaluate available compaction strategies
-		for (int i = 0; i < size && !evaluators.isEmpty(); i++) {
-			long v = elements.get(i);
-			for (Iterator<CompactionEvaluator> si = evaluators.iterator(); si.hasNext();) {
-				CompactionEvaluator strategy = si.next();
-				if (!strategy.evaluate(i, v)) {
-					si.remove();
-				}
-			}
-		}
-
-		if (evaluators.isEmpty()) {
-			// We may still be able to truncate the storage
-			if (elements instanceof LongArrayStore
-				&& elements.capacity() > elements.size() + AbstractStore.ALLOCATION_BUFFER) {
-				elements = new LongArrayStore(elements);
-			}
+		if (!dirty) {
 			return;
 		}
 
-		long range = Long.MAX_VALUE;
-		CompactionStrategy strategy = null;
-		for (CompactionEvaluator evaluator : evaluators) {
-			evaluator.normalize();
-			if (strategy == null || evaluator.range() < range) {
-				strategy = evaluator.getStrategy();
-				range = evaluator.range();
+		try {
+			if (size == 0) {
+				// Edge case where all elements have been removed from a leaf
+				elements = new ConstantStore(new OffsetCompactionStrategy(0), 0, 0);
+				return;
 			}
-		}
 
-		// Choose an appropriate storage strategy for the range of compact values
-		// observed
-		// TODO do we want to allow any headroom?
-		if (range == 0) {
-			elements = new ConstantStore(strategy, elements);
-		} else if (range < 1L << 4) {
-			elements = new NibbleArrayStore(strategy, elements);
-		} else if (range < 1L << 8) {
-			elements = new ByteArrayStore(strategy, elements);
-		} else if (range < 1L << 16) {
-			elements = new ShortArrayStore(strategy, elements);
-		} else if (range < 1L << 32) {
-			elements = new IntArrayStore(strategy, elements);
+			// Analyse the values in this node
+			StorageAnalysis analysis = new StorageAnalysis();
+			analysis.size = size;
+			analysis.first = elements.get(0);
+			analysis.last = elements.get(size - 1);
+
+			for (int i = 0; i < size; i++) {
+				long v = elements.get(i);
+				if (v < analysis.min) {
+					analysis.min = v;
+				}
+				if (v > analysis.max) {
+					analysis.max = v;
+				}
+			}
+
+			CompactionStrategy[] strategies = new CompactionStrategy[] {
+				new OffsetCompactionStrategy(analysis),
+				new LinearPredictionCompactionStrategy(analysis)
+			};
+			List<CompactionEvaluator> evaluators = Arrays.stream(strategies).map(CompactionEvaluator::new)
+				.collect(Collectors.toList());
+
+			// Evaluate available compaction strategies
+			for (int i = 0; i < size && !evaluators.isEmpty(); i++) {
+				long v = elements.get(i);
+				for (Iterator<CompactionEvaluator> si = evaluators.iterator(); si.hasNext();) {
+					CompactionEvaluator strategy = si.next();
+					if (!strategy.evaluate(i, v)) {
+						si.remove();
+					}
+				}
+			}
+
+			if (evaluators.isEmpty()) {
+				// We may still be able to truncate the storage
+				if (elements instanceof LongArrayStore
+					&& elements.capacity() > elements.size() + AbstractStore.ALLOCATION_BUFFER) {
+					elements = new LongArrayStore(elements);
+				}
+				return;
+			}
+
+			long range = Long.MAX_VALUE;
+			CompactionStrategy strategy = null;
+			for (CompactionEvaluator evaluator : evaluators) {
+				evaluator.normalize();
+				if (strategy == null || evaluator.range() < range) {
+					strategy = evaluator.getStrategy();
+					range = evaluator.range();
+				}
+			}
+
+			// Choose an appropriate storage strategy for the range of compact values
+			// observed
+			// TODO do we want to allow any headroom?
+			if (range == 0) {
+				elements = new ConstantStore(strategy, elements);
+			} else if (range < 1L << 4) {
+				elements = new NibbleArrayStore(strategy, elements);
+			} else if (range < 1L << 8) {
+				elements = new ByteArrayStore(strategy, elements);
+			} else if (range < 1L << 16) {
+				elements = new ShortArrayStore(strategy, elements);
+			} else if (range < 1L << 32) {
+				elements = new IntArrayStore(strategy, elements);
+			}
+		} finally {
+			dirty = false;
+			lastCompaction = operation;
 		}
 	}
 
