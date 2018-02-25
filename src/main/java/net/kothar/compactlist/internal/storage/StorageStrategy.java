@@ -26,5 +26,9 @@ public interface StorageStrategy extends List<Long>, Serializable {
 
 	int capacity();
 
+	int prependCapacity();
+
+	int appendCapacity();
+
 	int getWidth();
 }

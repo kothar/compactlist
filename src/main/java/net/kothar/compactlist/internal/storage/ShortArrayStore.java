@@ -2,7 +2,7 @@ package net.kothar.compactlist.internal.storage;
 
 import net.kothar.compactlist.internal.compaction.CompactionStrategy;
 
-public class ShortArrayStore extends CompactArrayStore<short[]> {
+public class ShortArrayStore extends CompactStore<short[]> {
 
 	public ShortArrayStore(CompactionStrategy strategy) {
 		super(strategy);
@@ -18,23 +18,18 @@ public class ShortArrayStore extends CompactArrayStore<short[]> {
 	}
 
 	@Override
-	public long getLong(int index) {
-		return strategy.getRealValue(index, store[index] & 0xFFFFL);
+	public long getArrayElement(int index) {
+		return store[index] & 0xFFFFL;
 	}
 
 	@Override
-	protected void setElement(int index, long value) {
-		store[index] = (short) strategy.getCompactValue(index, value);
+	protected void setArrayElement(int index, long value) {
+		store[index] = (short) value;
 	}
 
 	@Override
 	protected short[] allocateArray(int length) {
 		return new short[length];
-	}
-
-	@Override
-	protected int length(short[] array) {
-		return array.length;
 	}
 
 	@Override
