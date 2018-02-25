@@ -88,4 +88,18 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 	public Iterator<Long> iterator() {
 		return root.iterator();
 	}
+
+	/**
+	 * Performs a search in the list to locate the index of the given value.
+	 * <p>
+	 * Assumes that the values are in ascending order.
+	 * 
+	 * @param value
+	 *            The value to search for
+	 * @return The index of the value. If not found, returns -1 minus the index at which it should
+	 *         be inserted.
+	 */
+	public long search(long value) {
+		return root.searchLong(value);
+	}
 }
