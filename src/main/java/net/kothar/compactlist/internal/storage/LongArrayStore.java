@@ -1,11 +1,17 @@
 package net.kothar.compactlist.internal.storage;
 
+import net.kothar.compactlist.internal.compaction.CompactionStrategy;
+
 public class LongArrayStore extends ArrayStore<long[]> {
 
 	/**
 	 * Creates a new empty store
 	 */
 	public LongArrayStore() {
+		super();
+	}
+
+	public LongArrayStore(CompactionStrategy strategy) {
 		super();
 	}
 
@@ -40,12 +46,12 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	}
 
 	@Override
-	public long getLong(int index) {
+	public long getArrayElement(int index) {
 		return store[index];
 	}
 
 	@Override
-	protected void setElement(int index, long value) {
+	protected void setArrayElement(int index, long value) {
 		store[index] = value;
 	}
 
@@ -57,11 +63,6 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	@Override
 	protected long[] allocateArray(int length) {
 		return new long[length];
-	}
-
-	@Override
-	protected int length(long[] array) {
-		return array.length;
 	}
 
 	/**

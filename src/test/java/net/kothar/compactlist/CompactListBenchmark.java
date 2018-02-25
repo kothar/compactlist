@@ -2,9 +2,9 @@ package net.kothar.compactlist;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -21,6 +21,8 @@ import org.omg.CORBA.LongHolder;
 import gnu.trove.list.array.TLongArrayList;
 import net.kothar.compactlist.internal.Node;
 import net.kothar.compactlist.internal.storage.StorageStrategy;
+import net.kothar.compactlist.legacy.CSViewLongList;
+import net.kothar.compactlist.legacy.CSViewLongList.Block;
 
 public class CompactListBenchmark {
 
@@ -55,13 +57,14 @@ public class CompactListBenchmark {
 
 		for (Entry<String, Test> testEntry : tests.entrySet()) {
 
-			Map<Class<? extends LongList>, Map<Integer, Double>> testData = new HashMap<>();
-			Map<Class<? extends LongList>, Map<Integer, Long>> testMemory = new HashMap<>();
+			Map<Class<? extends LongList>, Map<Integer, Double>> testData = new LinkedHashMap<>();
+			Map<Class<? extends LongList>, Map<Integer, Long>> testMemory = new LinkedHashMap<>();
 
 			for (Class<? extends LongList> impl : Arrays.asList(
 				ArrayListWrapper.class,
 				TroveListWrapper.class,
-				CompactList.class)) {
+				CompactList.class,
+				CSViewLongList.class)) {
 
 				TreeMap<Integer, Double> classData = new TreeMap<>();
 				testData.put(impl, classData);
@@ -69,25 +72,31 @@ public class CompactListBenchmark {
 				testMemory.put(impl, classMemory);
 
 				Test test = testEntry.getValue();
+				try {
+					warmup(impl, test, maxListSize);
 
-				int increment = 10_000;
-				for (int size = increment; size < 1 << maxListSize; size += increment, increment *= 1.2) {
+					int increment = 10_000;
+					for (int size = increment; size < 1 << maxListSize; size += increment, increment *= 1.2) {
 
-					test.init(impl, size);
+						test.init(impl, size);
 
-					double elapsed = time(
-						String.format("%s\t%10d\t%s", testEntry.getKey(), size, impl.getSimpleName()),
-						test);
+						double elapsed = time(
+							String.format("%s\t%10d\t%s", testEntry.getKey(), size, impl.getSimpleName()),
+							test);
 
-					classData.put(size, elapsed);
-					classMemory.put(size, test.memoryUsage());
+						classData.put(size, elapsed);
+						classMemory.put(size, test.memoryUsage());
 
-					if (elapsed > 5_000) {
-						break;
+						if (elapsed > 3_000) {
+							break;
+						}
 					}
+				} catch (Exception e) {
+					System.err.println("Test not supported for " + impl.getSimpleName());
+					e.printStackTrace();
+				} finally {
+					test.clear();
 				}
-
-				test.clear();
 			}
 
 			// Create Chart
@@ -100,9 +109,11 @@ public class CompactListBenchmark {
 				.build();
 
 			for (Entry<Class<? extends LongList>, Map<Integer, Double>> classData : testData.entrySet()) {
-				chart.addSeries(classData.getKey().getSimpleName(),
-					new ArrayList<Integer>(classData.getValue().keySet()),
-					new ArrayList<Double>(classData.getValue().values()));
+				if (!classData.getValue().isEmpty()) {
+					chart.addSeries(classData.getKey().getSimpleName(),
+						new ArrayList<Integer>(classData.getValue().keySet()),
+						new ArrayList<Double>(classData.getValue().values()));
+				}
 			}
 
 			// Save it
@@ -120,11 +131,13 @@ public class CompactListBenchmark {
 			chart.getStyler().setYAxisLogarithmic(true);
 
 			for (Entry<Class<? extends LongList>, Map<Integer, Double>> classData : testData.entrySet()) {
-				chart.addSeries(classData.getKey().getSimpleName(),
-					new ArrayList<Integer>(classData.getValue().keySet()),
-					classData.getValue().entrySet().stream()
-						.map(entry -> entry.getValue() / entry.getKey())
-						.collect(Collectors.toList()));
+				if (!classData.getValue().isEmpty()) {
+					chart.addSeries(classData.getKey().getSimpleName(),
+						new ArrayList<Integer>(classData.getValue().keySet()),
+						classData.getValue().entrySet().stream()
+							.map(entry -> entry.getValue() / entry.getKey())
+							.collect(Collectors.toList()));
+				}
 			}
 
 			// Save it
@@ -140,10 +153,14 @@ public class CompactListBenchmark {
 				.height(400)
 				.build();
 
+			chart.getStyler().setYAxisLogarithmic(true);
+
 			for (Entry<Class<? extends LongList>, Map<Integer, Long>> classData : testMemory.entrySet()) {
-				chart.addSeries(classData.getKey().getSimpleName(),
-					new ArrayList<Integer>(classData.getValue().keySet()),
-					new ArrayList<Long>(classData.getValue().values()));
+				if (!classData.getValue().isEmpty()) {
+					chart.addSeries(classData.getKey().getSimpleName(),
+						new ArrayList<Integer>(classData.getValue().keySet()),
+						new ArrayList<Long>(classData.getValue().values()));
+				}
 			}
 
 			// Save it
@@ -406,6 +423,18 @@ public class CompactListBenchmark {
 		}
 	};
 
+	private static void warmup(Class<? extends LongList> impl, Test test, int maxListSize) {
+		System.out.println("Warming up " + impl.getSimpleName());
+		int size = 1 << maxListSize / 2;
+		long start = System.currentTimeMillis();
+		while (System.currentTimeMillis() - start < 5_000) {
+			test.init(impl, size);
+			test.reset();
+			test.run();
+			size <<= 1;
+		}
+	}
+
 	private static double time(String desc, Test test) {
 
 		test.reset();
@@ -416,7 +445,7 @@ public class CompactListBenchmark {
 		long elapsed = System.nanoTime() - start;
 		int runs = 1;
 
-		while (elapsed < 10_000_000) {
+		while (elapsed < 10_000_000 || runs < 3) {
 			test.reset();
 			runs++;
 			test.run();
@@ -444,18 +473,53 @@ public class CompactListBenchmark {
 				return (long) elements.length * Long.BYTES;
 			} else if (o instanceof CompactList) {
 				Node node = ((CompactList) o).root;
-				LongHolder size = new LongHolder();
+				LongHolder size = new LongHolder(16);
 				node.walk(leaf -> {
+					// This approximates the true size based to the number of leaves, but doesn't
+					// account for other nodes
+					size.value += 24;
 					StorageStrategy storageStrategy = leaf.getStorageStrategy();
 					if (storageStrategy != null) {
 						size.value += (long) leaf.size() * storageStrategy.getWidth() / 8;
 					}
 				});
 				return size.value;
+			} else if (o instanceof CSViewLongList) {
+				Field dataField = CSViewLongList.class.getDeclaredField("root");
+				dataField.setAccessible(true);
+				Block block = (Block) dataField.get(o);
+				return size(block);
 			}
 		} catch (SecurityException | NoSuchFieldException | IllegalArgumentException | IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}
 		return 0;
+	}
+
+	private static long size(Block block)
+		throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		Field leftField = Block.class.getDeclaredField("left");
+		leftField.setAccessible(true);
+		Field rightField = Block.class.getDeclaredField("right");
+		rightField.setAccessible(true);
+		Field itemsField = Block.class.getDeclaredField("items");
+		itemsField.setAccessible(true);
+
+		long size = 24;
+		ByteBuffer items = (ByteBuffer) itemsField.get(block);
+		if (items != null) {
+			size += items.capacity();
+		}
+
+		Block left = (Block) leftField.get(block);
+		if (left != null) {
+			size += size(left);
+		}
+		Block right = (Block) rightField.get(block);
+		if (right != null) {
+			size += size(right);
+		}
+
+		return size;
 	}
 }

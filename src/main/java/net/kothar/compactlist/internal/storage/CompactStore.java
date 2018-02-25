@@ -4,33 +4,33 @@ import net.kothar.compactlist.internal.compaction.CompactionStrategy;
 import net.kothar.compactlist.internal.compaction.OffsetCompactionStrategy;
 import net.kothar.compactlist.internal.compaction.PositionIndependentCompactionStrategy;
 
-public abstract class CompactArrayStore<T> extends ArrayStore<T> {
+public abstract class CompactStore<T> extends ArrayStore<T> {
 
-	protected CompactionStrategy strategy;
+	private CompactionStrategy strategy;
 
 	protected abstract boolean inRange(long value);
 
-	public CompactArrayStore(CompactionStrategy strategy) {
+	public CompactStore(CompactionStrategy strategy) {
 		super();
 		this.strategy = strategy;
 	}
 
-	public CompactArrayStore(CompactionStrategy strategy, int size, int capactity) {
+	public CompactStore(CompactionStrategy strategy, int size, int capactity) {
 		super(size, capactity);
 		this.strategy = strategy;
 	}
 
-	public CompactArrayStore(StorageStrategy elements, int offset, int size) {
+	public CompactStore(StorageStrategy elements, int offset, int size) {
 		super(size, size);
-		if (elements instanceof CompactArrayStore) {
-			strategy = ((CompactArrayStore<?>) elements).strategy;
+		if (elements instanceof CompactStore) {
+			strategy = ((CompactStore<?>) elements).strategy;
 		} else {
 			strategy = new OffsetCompactionStrategy(0);
 		}
 		copy(elements, 0, offset, size);
 	}
 
-	protected CompactArrayStore() {
+	protected CompactStore() {
 	}
 
 	@Override
@@ -46,6 +46,16 @@ public abstract class CompactArrayStore<T> extends ArrayStore<T> {
 
 		long compactValue = strategy.getCompactValue(index, value);
 		return inRange(compactValue);
+	}
+
+	@Override
+	protected final long getElement(int index) {
+		return strategy.getRealValue(index, getArrayElement(index + offset));
+	}
+
+	@Override
+	protected final void setElement(int index, long value) {
+		setArrayElement(index + offset, strategy.getCompactValue(index, value));
 	}
 
 }

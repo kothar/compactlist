@@ -69,4 +69,14 @@ public class ConstantStore extends AbstractStore {
 		return 0;
 	}
 
+	@Override
+	public int prependCapacity() {
+		return size;
+	}
+
+	@Override
+	public int appendCapacity() {
+		return size;
+	}
+
 }

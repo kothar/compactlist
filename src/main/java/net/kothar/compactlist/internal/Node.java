@@ -21,7 +21,6 @@ import net.kothar.compactlist.internal.storage.ByteArrayStore;
 import net.kothar.compactlist.internal.storage.ConstantStore;
 import net.kothar.compactlist.internal.storage.IntArrayStore;
 import net.kothar.compactlist.internal.storage.LongArrayStore;
-import net.kothar.compactlist.internal.storage.NibbleArrayStore;
 import net.kothar.compactlist.internal.storage.ShortArrayStore;
 import net.kothar.compactlist.internal.storage.StorageStrategy;
 
@@ -31,6 +30,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	private static final int	READ_COMPACTION_DELAY	= 1 << 10;
 	private static final int	TARGET_LEAF_SIZE		= 1 << 16;
+	private static final int	TARGET_REMOVE_SIZE		= 1 << 4;
 	private static final int	MAX_LEAF_SIZE			= 1 << 20;
 
 	protected int				size;
@@ -163,8 +163,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		// If we can't safely remove an element, decompact the store
 		if (isLeaf() && index < size - 1 && !elements.isPositionIndependent()) {
-			if (size > TARGET_LEAF_SIZE) {
-				if (index > TARGET_LEAF_SIZE && size - index > TARGET_LEAF_SIZE) {
+			if (size > TARGET_REMOVE_SIZE) {
+				if (index > TARGET_REMOVE_SIZE && size - index > TARGET_REMOVE_SIZE) {
 					// Both sides will be large enough
 					split(index + 1);
 					size--;
@@ -194,7 +194,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			oldValue = right.removeLong(index - left.size);
 		}
 
-		if (size <= TARGET_LEAF_SIZE) {
+		if (size <= TARGET_REMOVE_SIZE) {
 			// TODO do this as part of the pre-removal step
 			merge();
 		} else {
@@ -383,11 +383,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 			// Choose an appropriate storage strategy for the range of compact values
 			// observed
-			// TODO do we want to allow any headroom?
 			if (range == 0) {
 				elements = new ConstantStore(strategy, elements);
-			} else if (range < 1L << 4) {
-				elements = new NibbleArrayStore(strategy, elements);
 			} else if (range < 1L << 8) {
 				elements = new ByteArrayStore(strategy, elements);
 			} else if (range < 1L << 16) {
