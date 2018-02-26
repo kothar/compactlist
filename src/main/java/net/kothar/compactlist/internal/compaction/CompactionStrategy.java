@@ -9,4 +9,6 @@ public interface CompactionStrategy extends Serializable {
 	long getRealValue(int index, long compactValue);
 
 	void adjustOffset(long minValue);
+
+	CompactionStrategy[] split(int index);
 }

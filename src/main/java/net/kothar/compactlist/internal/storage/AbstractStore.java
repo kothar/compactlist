@@ -3,7 +3,7 @@ package net.kothar.compactlist.internal.storage;
 import java.util.AbstractList;
 import java.util.Iterator;
 
-public abstract class AbstractStore extends AbstractList<Long> implements StorageStrategy {
+public abstract class AbstractStore extends AbstractList<Long> implements Store {
 
 	private static final long serialVersionUID = -4353672868307014379L;
 
@@ -49,11 +49,11 @@ public abstract class AbstractStore extends AbstractList<Long> implements Storag
 		};
 	}
 
-	public void copy(StorageStrategy src, int dstOffset) {
+	public void copy(Store src, int dstOffset) {
 		copy(src, dstOffset, 0, src.size());
 	}
 
-	public void copy(StorageStrategy src, int dstOffset, int srcOffset, int length) {
+	public void copy(Store src, int dstOffset, int srcOffset, int length) {
 		for (int i = 0; i < length; i++) {
 			set(dstOffset + i, src.get(srcOffset + i));
 		}

@@ -20,7 +20,7 @@ public abstract class CompactStore<T> extends ArrayStore<T> {
 		this.strategy = strategy;
 	}
 
-	public CompactStore(StorageStrategy elements, int offset, int size) {
+	public CompactStore(Store elements, int offset, int size) {
 		super(size, size);
 		if (elements instanceof CompactStore) {
 			strategy = ((CompactStore<?>) elements).strategy;
@@ -56,6 +56,17 @@ public abstract class CompactStore<T> extends ArrayStore<T> {
 	@Override
 	protected final void setElement(int index, long value) {
 		setArrayElement(index + offset, strategy.getCompactValue(index, value));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Store[] split(int index) {
+		CompactionStrategy[] splitStrategies = strategy.split(index);
+		Store[] branches = super.split(index);
+
+		((CompactStore<T>) branches[0]).strategy = splitStrategies[0];
+		((CompactStore<T>) branches[1]).strategy = splitStrategies[1];
+		return branches;
 	}
 
 }

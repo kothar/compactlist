@@ -19,7 +19,7 @@ public class LongArrayStore extends ArrayStore<long[]> {
 		super(size, size + ALLOCATION_BUFFER);
 	}
 
-	public LongArrayStore(StorageStrategy elements) {
+	public LongArrayStore(Store elements) {
 		this(elements, 0, elements.size());
 	}
 
@@ -33,7 +33,7 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	 * @param size
 	 *            The number of elements to copy
 	 */
-	public LongArrayStore(StorageStrategy elements, int offset, int size) {
+	public LongArrayStore(Store elements, int offset, int size) {
 		super(size, size + ALLOCATION_BUFFER);
 
 		if (elements instanceof LongArrayStore) {
@@ -70,9 +70,10 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	 * 
 	 */
 	@Override
-	public void copy(StorageStrategy src, int dstOffset, int srcOffset, int length) {
+	public void copy(Store src, int dstOffset, int srcOffset, int length) {
 		if (src instanceof LongArrayStore) {
-			System.arraycopy(((LongArrayStore) src).store, srcOffset, store, dstOffset, length);
+			LongArrayStore longStore = (LongArrayStore) src;
+			System.arraycopy(longStore.store, srcOffset + longStore.offset, store, dstOffset + offset, length);
 		} else {
 			super.copy(src, dstOffset, srcOffset, length);
 		}
@@ -86,6 +87,11 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	@Override
 	public int getWidth() {
 		return Long.SIZE;
+	}
+
+	@Override
+	protected ArrayStore<long[]> newInstance() {
+		return new LongArrayStore();
 	}
 
 }

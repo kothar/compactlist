@@ -20,7 +20,7 @@ import org.omg.CORBA.LongHolder;
 
 import gnu.trove.list.array.TLongArrayList;
 import net.kothar.compactlist.internal.Node;
-import net.kothar.compactlist.internal.storage.StorageStrategy;
+import net.kothar.compactlist.internal.storage.Store;
 import net.kothar.compactlist.legacy.CSViewLongList;
 import net.kothar.compactlist.legacy.CSViewLongList.Block;
 
@@ -478,7 +478,7 @@ public class CompactListBenchmark {
 					// This approximates the true size based to the number of leaves, but doesn't
 					// account for other nodes
 					size.value += 24;
-					StorageStrategy storageStrategy = leaf.getStorageStrategy();
+					Store storageStrategy = leaf.getStorageStrategy();
 					if (storageStrategy != null) {
 						size.value += (long) leaf.size() * storageStrategy.getWidth() / 8;
 					}

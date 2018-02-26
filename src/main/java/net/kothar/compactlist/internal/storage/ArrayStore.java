@@ -26,6 +26,8 @@ public abstract class ArrayStore<T> extends AbstractStore {
 
 	protected abstract long getArrayElement(int index);
 
+	protected abstract ArrayStore<T> newInstance();
+
 	public ArrayStore() {
 		this(0, ALLOCATION_BUFFER);
 	}
@@ -133,6 +135,21 @@ public abstract class ArrayStore<T> extends AbstractStore {
 			offset = newOffset;
 		}
 		size++;
+	}
+
+	@Override
+	public Store[] split(int index) {
+		ArrayStore<T> that = newInstance();
+
+		that.store = store;
+		that.base = that.offset = offset + index;
+		that.size = size - index;
+		that.limit = limit;
+
+		this.size = index;
+		this.limit = offset + index;
+
+		return new Store[] { this, that };
 	}
 
 	@Override

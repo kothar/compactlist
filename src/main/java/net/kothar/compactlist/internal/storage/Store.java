@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * Encapsulates a strategy for storing a list of long values in a leaf node
  */
-public interface StorageStrategy extends List<Long>, Serializable {
+public interface Store extends List<Long>, Serializable {
 
 	void setSize(int size);
 
@@ -31,4 +31,6 @@ public interface StorageStrategy extends List<Long>, Serializable {
 	int appendCapacity();
 
 	int getWidth();
+
+	Store[] split(int index);
 }

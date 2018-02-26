@@ -22,7 +22,7 @@ import net.kothar.compactlist.internal.storage.ConstantStore;
 import net.kothar.compactlist.internal.storage.IntArrayStore;
 import net.kothar.compactlist.internal.storage.LongArrayStore;
 import net.kothar.compactlist.internal.storage.ShortArrayStore;
-import net.kothar.compactlist.internal.storage.StorageStrategy;
+import net.kothar.compactlist.internal.storage.Store;
 
 public class Node implements Iterable<Long>, LongList, Serializable {
 
@@ -33,12 +33,12 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	private static final int	TARGET_REMOVE_SIZE		= 1 << 4;
 	private static final int	MAX_LEAF_SIZE			= 1 << 20;
 
-	protected int				size;
-	protected StorageStrategy	elements;
-	protected Node				left, right;
-	protected int				height;
-	protected boolean			dirty	= true;
-	protected long				operation,
+	protected int		size;
+	protected Store		elements;
+	protected Node		left, right;
+	protected int		height;
+	protected boolean	dirty	= true;
+	protected long		operation,
 		lastRead,
 		lastWrite,
 		lastCompaction;
@@ -47,7 +47,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		this(new LongArrayStore());
 	}
 
-	public Node(StorageStrategy elements) {
+	public Node(Store elements) {
 		this.elements = elements;
 		this.size = elements.size();
 	}
@@ -209,18 +209,13 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			if (pivot == size) {
 				left = new Node(elements);
 				right = new Node(new LongArrayStore());
-				left.compact();
 			} else if (pivot == 0) {
 				left = new Node(new LongArrayStore());
 				right = new Node(elements);
-				right.compact();
 			} else {
-				// Right node takes a copy of data after pivot
-				right = new Node(new LongArrayStore(elements, pivot, size - pivot));
-
-				// Left re-uses the current elements array
-				elements.setSize(pivot);
-				left = new Node(elements);
+				Store[] splitElements = elements.split(pivot);
+				left = new Node(splitElements[0]);
+				right = new Node(splitElements[1]);
 			}
 
 			elements = null;
@@ -329,20 +324,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			}
 
 			// Analyse the values in this node
-			StorageAnalysis analysis = new StorageAnalysis();
-			analysis.size = size;
-			analysis.first = elements.get(0);
-			analysis.last = elements.get(size - 1);
-
-			for (int i = 0; i < size; i++) {
-				long v = elements.get(i);
-				if (v < analysis.min) {
-					analysis.min = v;
-				}
-				if (v > analysis.max) {
-					analysis.max = v;
-				}
-			}
+			StorageAnalysis analysis = new StorageAnalysis(elements);
 
 			CompactionStrategy[] strategies = new CompactionStrategy[] {
 				new OffsetCompactionStrategy(analysis),
@@ -489,7 +471,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		}
 	}
 
-	public StorageStrategy getStorageStrategy() {
+	public Store getStorageStrategy() {
 		return elements;
 	}
 

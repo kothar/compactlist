@@ -29,4 +29,9 @@ public class OffsetCompactionStrategy implements CompactionStrategy, PositionInd
 		offset += minValue;
 	}
 
+	@Override
+	public CompactionStrategy[] split(int index) {
+		return new CompactionStrategy[] { this, this };
+	}
+
 }
