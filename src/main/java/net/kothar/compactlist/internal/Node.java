@@ -30,7 +30,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	private static final int	READ_COMPACTION_DELAY	= 1 << 10;
 	private static final int	TARGET_LEAF_SIZE		= 1 << 16;
-	private static final int	TARGET_REMOVE_SIZE		= 1 << 4;
 	private static final int	MAX_LEAF_SIZE			= 1 << 20;
 
 	protected int		size;
@@ -161,31 +160,15 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	public long removeLong(int index) {
 		assert index < size && index >= 0;
 
-		// If we can't safely remove an element, decompact the store
-		if (isLeaf() && index < size - 1 && !elements.isPositionIndependent()) {
-			if (size > TARGET_REMOVE_SIZE) {
-				if (index > TARGET_REMOVE_SIZE && size - index > TARGET_REMOVE_SIZE) {
-					// Both sides will be large enough
-					split(index + 1);
-					size--;
-					return left.removeLong(index);
-				} else {
-					// Don't make segments too small
-					split(size / 2);
-					return removeLong(index);
-				}
-			}
-
-			elements = new LongArrayStore(elements);
-			dirty = true;
-		}
-
-		// Leaf
-		size--;
 		long oldValue;
 		if (isLeaf()) {
 			lastWrite = ++operation;
-			return elements.remove(index);
+			if (index == 0 || index == size - 1) {
+				oldValue = elements.remove(index);
+			} else {
+				split(index + 1);
+				oldValue = left.removeLong(index);
+			}
 		} else if (index < left.size) {
 			// Left branch
 			oldValue = left.removeLong(index);
@@ -194,13 +177,17 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			oldValue = right.removeLong(index - left.size);
 		}
 
-		if (size <= TARGET_REMOVE_SIZE) {
-			// TODO do this as part of the pre-removal step
-			merge();
+		size--;
+		if (size == 0) {
+			elements = new LongArrayStore();
+			left = null;
+			right = null;
+			height = 0;
+			lastWrite = operation;
+			dirty = true;
 		} else {
 			balance();
 		}
-
 		return oldValue;
 	}
 
@@ -221,6 +208,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			elements = null;
 			height = 1;
 
+			assert left.size == pivot;
+			assert right.size == size - pivot;
 		} else if (pivot < left.size) {
 			left.split(pivot);
 			balance();
