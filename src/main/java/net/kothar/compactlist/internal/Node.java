@@ -70,7 +70,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			if (dirty && lastRead - lastWrite > READ_COMPACTION_DELAY) {
 				compact();
 			}
-			return elements.get(index);
+			return elements.getLong(index);
 		}
 
 		// Left branch
@@ -95,7 +95,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		// Leaf
 		if (isLeaf()) {
 			lastWrite = ++operation;
-			return elements.set(index, element);
+			return elements.setLong(index, element);
 		} else if (index < left.size) {
 			// Left branch
 			return left.setLong(index, element);
@@ -136,7 +136,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 				elements = newElements;
 				dirty = true;
 			} else {
-				elements.add(index, element);
+				elements.addLong(index, element);
 			}
 			size++;
 		} else {
@@ -164,7 +164,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		if (isLeaf()) {
 			lastWrite = ++operation;
 			if (index == 0 || index == size - 1) {
-				oldValue = elements.remove(index);
+				oldValue = elements.removeLong(index);
 			} else {
 				split(index + 1);
 				oldValue = left.removeLong(index);
@@ -178,8 +178,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		}
 
 		size--;
-		if (size == 0) {
-			elements = new LongArrayStore();
+		if (!isLeaf() && size == 0) {
+			elements = left.elements;
 			left = null;
 			right = null;
 			height = 0;
@@ -324,7 +324,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 			// Evaluate available compaction strategies
 			for (int i = 0; i < size && !evaluators.isEmpty(); i++) {
-				long v = elements.get(i);
+				long v = elements.getLong(i);
 				for (Iterator<CompactionEvaluator> si = evaluators.iterator(); si.hasNext();) {
 					CompactionEvaluator strategy = si.next();
 					if (!strategy.evaluate(i, v)) {
@@ -412,23 +412,28 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		@Override
 		public Long next() {
 
-			// Only true if we've depleted this node
-			if (currentPos >= current.size) {
-				// Move to the right sibling node
-				current = stack.remove(stack.size() - 1).right;
-				currentPos = 0;
-			}
+			while (current != null) {
+				// Only true if we've depleted this node
+				if (currentPos >= current.size) {
+					// Move to the right sibling node
+					current = stack.remove(stack.size() - 1).right;
+					currentPos = 0;
+				}
 
-			// Move to the leftmost child
-			while (!current.isLeaf()) {
-				stack.add(current);
-				current = current.left;
-			}
+				// Move to the leftmost child
+				while (!current.isLeaf()) {
+					stack.add(current);
+					current = current.left;
+				}
 
-			// Iterate over current node
-			long v = current.elements.get(currentPos++);
-			pos++;
-			return v;
+				// Iterate over current node
+				if (currentPos < current.size) {
+					long v = current.elements.getLong(currentPos++);
+					pos++;
+					return v;
+				}
+			}
+			throw new IllegalStateException();
 
 		}
 
@@ -479,7 +484,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			return Collections.binarySearch(elements, value, Comparator.naturalOrder());
 		}
 
-		if (right.size > 0 && right.getLong(0) >= value) {
+		if (right.size > 0 && right.getLong(0) <= value) {
 			int index = right.searchLong(value);
 			index += index < 0 ? -left.size : left.size;
 			return index;
