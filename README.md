@@ -89,8 +89,4 @@ Lists can be compacted manually by calling `CompactList.compact()`.
 
 When compacting, several strategies are attempted to reduce the storage size needed:
 
-**Linear Prediction** will only record the distance of each point in a segment from a trend line of the form *ax + b*.
-
-**Offset** will attempt to add an offset to each value, shifting the zero-point to the mean value in that segment. It has
-an advantage over the linear prediction strategy in that it is *position independent* and inserting or removing values
-from a segment will not change the validity of other entries.
+**Offset** will attempt to add an offset to each value, shifting the zero-point to the middle of the range of values stored in the current block.
