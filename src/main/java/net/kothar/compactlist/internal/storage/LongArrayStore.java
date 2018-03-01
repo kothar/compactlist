@@ -37,7 +37,8 @@ public class LongArrayStore extends ArrayStore<long[]> {
 		super(size, size + ALLOCATION_BUFFER);
 
 		if (elements instanceof LongArrayStore) {
-			System.arraycopy(((LongArrayStore) elements).store, offset, store, 0, size);
+			LongArrayStore longStore = (LongArrayStore) elements;
+			System.arraycopy(longStore.store, offset + longStore.offset, store, 0, size);
 		} else {
 			for (int i = 0; i < size; i++) {
 				setElement(i, elements.get(i + offset));

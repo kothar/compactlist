@@ -171,7 +171,7 @@ public class NodeTest {
 
 		String lastOp = "";
 
-		for (int i = 0; i < 100_000; i++) {
+		for (int i = 0; i < 1_000; i++) {
 			long v;
 			int index;
 			Long a;
@@ -203,7 +203,7 @@ public class NodeTest {
 				v = r.nextLong();
 				list.add(v);
 				compactList.add(v);
-				lastOp = "append " + v;
+				lastOp = "append " + " at " + (list.size() - 1);
 				break;
 			case 3:
 				// Remove
@@ -227,14 +227,15 @@ public class NodeTest {
 				}
 			}
 
-			System.out.println("Iteration " + i + ": " + lastOp);
-			System.out.println(list);
-			System.out.println(compactList);
-			System.out.println();
-
 			assertEquals(list.size(), compactList.size());
 			for (int j = 0; j < list.size(); j++) {
-				assertEquals("Index " + j, (long) list.get(j), compactList.getLong(j));
+				long listVal = list.get(j);
+				long clistVal = compactList.getLong(j);
+				if (listVal != clistVal) {
+					System.out.println("Iteration " + i + ": " + lastOp);
+					System.out.println(" " + j + ": " + listVal + " != " + clistVal);
+				}
+				assertEquals("Index " + j, listVal, clistVal);
 			}
 
 			assertTrue("Iteration " + i + ": " + lastOp, list.equals(compactList));

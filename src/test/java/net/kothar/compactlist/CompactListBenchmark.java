@@ -49,11 +49,11 @@ public class CompactListBenchmark {
 		System.out.println("Test\t\tCount\t\tClass\t\t\tElapsed");
 
 		Map<String, Test> tests = new LinkedHashMap<>();
-		tests.put("remove", removeRandom);
 		tests.put("append", appendSequential);
 		tests.put("appendRandom", appendRandom);
 		tests.put("insert", insertSequential);
 		tests.put("set", setSeq);
+		tests.put("remove", removeRandom);
 
 		for (Entry<String, Test> testEntry : tests.entrySet()) {
 
@@ -63,8 +63,10 @@ public class CompactListBenchmark {
 			for (Class<? extends LongList> impl : Arrays.asList(
 				CompactList.class,
 				ArrayListWrapper.class,
-				TroveListWrapper.class,
-				CSViewLongList.class)) {
+				TroveListWrapper.class/*
+										 * , CSViewLongList.class
+										 */
+			)) {
 
 				TreeMap<Integer, Double> classData = new TreeMap<>();
 				testData.put(impl, classData);
