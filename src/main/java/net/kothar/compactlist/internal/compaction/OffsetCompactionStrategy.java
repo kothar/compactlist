@@ -1,6 +1,6 @@
 package net.kothar.compactlist.internal.compaction;
 
-public class OffsetCompactionStrategy implements CompactionStrategy, PositionIndependentCompactionStrategy {
+public class OffsetCompactionStrategy implements CompactionStrategy {
 
 	private static final long serialVersionUID = -4967610547335861332L;
 
@@ -27,6 +27,11 @@ public class OffsetCompactionStrategy implements CompactionStrategy, PositionInd
 	@Override
 	public void adjustOffset(long minValue) {
 		offset += minValue;
+	}
+
+	@Override
+	public CompactionStrategy[] split(int index) {
+		return new CompactionStrategy[] { this, this };
 	}
 
 }

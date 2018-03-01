@@ -2,52 +2,53 @@ package net.kothar.compactlist.internal;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.kothar.compactlist.LongList;
 import net.kothar.compactlist.internal.compaction.CompactionEvaluator;
 import net.kothar.compactlist.internal.compaction.CompactionStrategy;
-import net.kothar.compactlist.internal.compaction.LinearPredictionCompactionStrategy;
 import net.kothar.compactlist.internal.compaction.OffsetCompactionStrategy;
 import net.kothar.compactlist.internal.compaction.StorageAnalysis;
-import net.kothar.compactlist.internal.storage.AbstractStore;
 import net.kothar.compactlist.internal.storage.ByteArrayStore;
 import net.kothar.compactlist.internal.storage.ConstantStore;
 import net.kothar.compactlist.internal.storage.IntArrayStore;
 import net.kothar.compactlist.internal.storage.LongArrayStore;
 import net.kothar.compactlist.internal.storage.ShortArrayStore;
-import net.kothar.compactlist.internal.storage.StorageStrategy;
+import net.kothar.compactlist.internal.storage.Store;
 
 public class Node implements Iterable<Long>, LongList, Serializable {
+
+	private static final Logger		log		= LoggerFactory.getLogger(Node.class);
+	private static final boolean	trace	= log.isTraceEnabled();
 
 	private static final long serialVersionUID = 3105932349913959938L;
 
 	private static final int	READ_COMPACTION_DELAY	= 1 << 10;
 	private static final int	TARGET_LEAF_SIZE		= 1 << 16;
-	private static final int	TARGET_REMOVE_SIZE		= 1 << 4;
 	private static final int	MAX_LEAF_SIZE			= 1 << 20;
 
-	protected int				size;
-	protected StorageStrategy	elements;
-	protected Node				left, right;
-	protected int				height;
-	protected boolean			dirty	= true;
-	protected long				operation,
+	protected int		size;
+	protected Store		elements;
+	protected Node		left, right;
+	protected int		height;
+	protected boolean	dirty	= true;
+	protected long		operation,
 		lastRead,
 		lastWrite,
 		lastCompaction;
 
 	public Node() {
-		this(new LongArrayStore());
+		this(new ShortArrayStore(new OffsetCompactionStrategy(0)));
 	}
 
-	public Node(StorageStrategy elements) {
+	public Node(Store elements) {
 		this.elements = elements;
 		this.size = elements.size();
 	}
@@ -71,7 +72,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			if (dirty && lastRead - lastWrite > READ_COMPACTION_DELAY) {
 				compact();
 			}
-			return elements.get(index);
+			return elements.getLong(index);
 		}
 
 		// Left branch
@@ -88,7 +89,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		assert index < size && index >= 0;
 
 		// Replace with non-compact representation if out of range
-		if (isLeaf() && !elements.inRange(index, element, true)) {
+		// TODO evaluate storage range
+		if (isLeaf() && !elements.inRange(index, element)) {
 			elements = new LongArrayStore(elements, 0, size);
 			dirty = true;
 		}
@@ -96,7 +98,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		// Leaf
 		if (isLeaf()) {
 			lastWrite = ++operation;
-			return elements.set(index, element);
+			return elements.setLong(index, element);
 		} else if (index < left.size) {
 			// Left branch
 			return left.setLong(index, element);
@@ -116,12 +118,14 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		}
 
 		// Split
-		if (isLeaf() && size >= TARGET_LEAF_SIZE) {
-			if (index == size && size < MAX_LEAF_SIZE) {
-				// Don't split if we are appending
-			} else {
-				split(index);
-			}
+		if (isLeaf()
+			&& size >= TARGET_LEAF_SIZE
+			&& (index < size // Insert
+				|| size >= MAX_LEAF_SIZE // Too big
+				|| !elements.inRange(index, element) // Out of range
+				|| elements.capacity() == 0 // Allocation required
+			)) {
+			split(index);
 		}
 
 		if (isLeaf()) {
@@ -129,7 +133,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			lastWrite = ++operation;
 
 			// Replace with non-compact representation if out of range
-			if (!elements.inRange(index, element, index < size)) {
+			// TODO perform storage analysis
+			if (!elements.inRange(index, element)) {
 				LongArrayStore newElements = new LongArrayStore(size + 1);
 				newElements.copy(elements, 0, 0, index);
 				newElements.set(index, element);
@@ -137,7 +142,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 				elements = newElements;
 				dirty = true;
 			} else {
-				elements.add(index, element);
+				elements.addLong(index, element);
 			}
 			size++;
 		} else {
@@ -161,31 +166,15 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	public long removeLong(int index) {
 		assert index < size && index >= 0;
 
-		// If we can't safely remove an element, decompact the store
-		if (isLeaf() && index < size - 1 && !elements.isPositionIndependent()) {
-			if (size > TARGET_REMOVE_SIZE) {
-				if (index > TARGET_REMOVE_SIZE && size - index > TARGET_REMOVE_SIZE) {
-					// Both sides will be large enough
-					split(index + 1);
-					size--;
-					return left.removeLong(index);
-				} else {
-					// Don't make segments too small
-					split(size / 2);
-					return removeLong(index);
-				}
-			}
-
-			elements = new LongArrayStore(elements);
-			dirty = true;
-		}
-
-		// Leaf
-		size--;
 		long oldValue;
 		if (isLeaf()) {
 			lastWrite = ++operation;
-			return elements.remove(index);
+			if (index == 0 || index == size - 1) {
+				oldValue = elements.removeLong(index);
+			} else {
+				split(index + 1);
+				oldValue = left.removeLong(index);
+			}
 		} else if (index < left.size) {
 			// Left branch
 			oldValue = left.removeLong(index);
@@ -194,38 +183,43 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			oldValue = right.removeLong(index - left.size);
 		}
 
-		if (size <= TARGET_REMOVE_SIZE) {
-			// TODO do this as part of the pre-removal step
-			merge();
+		size--;
+		if (!isLeaf() && size == 0) {
+			elements = left.elements;
+			left = null;
+			right = null;
+			height = 0;
+			lastWrite = operation;
+			dirty = true;
 		} else {
 			balance();
 		}
-
 		return oldValue;
 	}
 
 	protected void split(int pivot) {
+
+		if (trace)
+			log.trace("split {}: {}", pivot, this);
+
 		if (isLeaf()) {
 			if (pivot == size) {
 				left = new Node(elements);
-				right = new Node(new LongArrayStore());
-				left.compact();
+				right = new Node(new ShortArrayStore(new OffsetCompactionStrategy(elements.getLong(pivot - 1))));
 			} else if (pivot == 0) {
-				left = new Node(new LongArrayStore());
+				left = new Node(new ShortArrayStore(new OffsetCompactionStrategy(elements.getLong(0))));
 				right = new Node(elements);
-				right.compact();
 			} else {
-				// Right node takes a copy of data after pivot
-				right = new Node(new LongArrayStore(elements, pivot, size - pivot));
-
-				// Left re-uses the current elements array
-				elements.setSize(pivot);
-				left = new Node(elements);
+				Store[] splitElements = elements.split(pivot);
+				left = new Node(splitElements[0]);
+				right = new Node(splitElements[1]);
 			}
 
 			elements = null;
 			height = 1;
 
+			assert left.size == pivot;
+			assert right.size == size - pivot;
 		} else if (pivot < left.size) {
 			left.split(pivot);
 			balance();
@@ -236,6 +230,11 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	}
 
 	protected void merge() {
+
+		if (trace)
+			log.trace("merge: {}", this);
+
+		// TODO analyse elements to determine range required
 		LongArrayStore target = new LongArrayStore(size);
 
 		left.mergeElements(target, 0);
@@ -254,6 +253,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			if (size > 0) {
 				target.copy(elements, offset);
 			}
+			elements.release();
 		} else {
 			left.mergeElements(target, offset);
 			right.mergeElements(target, offset + left.size);
@@ -306,6 +306,9 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	public void compact() {
 
+		if (trace)
+			log.trace("compact: {}", this);
+
 		if (!isLeaf()) {
 			if (size <= TARGET_LEAF_SIZE) {
 				merge();
@@ -324,36 +327,20 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		try {
 			if (size == 0) {
 				// Edge case where all elements have been removed from a leaf
+				elements.release();
 				elements = new ConstantStore(new OffsetCompactionStrategy(0), 0, 0);
 				return;
 			}
 
 			// Analyse the values in this node
-			StorageAnalysis analysis = new StorageAnalysis();
-			analysis.size = size;
-			analysis.first = elements.get(0);
-			analysis.last = elements.get(size - 1);
+			StorageAnalysis analysis = new StorageAnalysis(elements);
 
-			for (int i = 0; i < size; i++) {
-				long v = elements.get(i);
-				if (v < analysis.min) {
-					analysis.min = v;
-				}
-				if (v > analysis.max) {
-					analysis.max = v;
-				}
-			}
-
-			CompactionStrategy[] strategies = new CompactionStrategy[] {
-				new OffsetCompactionStrategy(analysis),
-				new LinearPredictionCompactionStrategy(analysis)
-			};
-			List<CompactionEvaluator> evaluators = Arrays.stream(strategies).map(CompactionEvaluator::new)
-				.collect(Collectors.toList());
+			List<CompactionEvaluator> evaluators = new ArrayList<>();
+			evaluators.add(new CompactionEvaluator(new OffsetCompactionStrategy(analysis)));
 
 			// Evaluate available compaction strategies
 			for (int i = 0; i < size && !evaluators.isEmpty(); i++) {
-				long v = elements.get(i);
+				long v = elements.getLong(i);
 				for (Iterator<CompactionEvaluator> si = evaluators.iterator(); si.hasNext();) {
 					CompactionEvaluator strategy = si.next();
 					if (!strategy.evaluate(i, v)) {
@@ -364,9 +351,10 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 			if (evaluators.isEmpty()) {
 				// We may still be able to truncate the storage
-				if (elements instanceof LongArrayStore
-					&& elements.capacity() > elements.size() + AbstractStore.ALLOCATION_BUFFER) {
-					elements = new LongArrayStore(elements);
+				if (elements instanceof LongArrayStore && elements.capacity() > TARGET_LEAF_SIZE) {
+					LongArrayStore newElements = new LongArrayStore(elements);
+					elements.release();
+					elements = newElements;
 				}
 				return;
 			}
@@ -383,14 +371,23 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 			// Choose an appropriate storage strategy for the range of compact values
 			// observed
-			if (range == 0) {
-				elements = new ConstantStore(strategy, elements);
-			} else if (range < 1L << 8) {
-				elements = new ByteArrayStore(strategy, elements);
-			} else if (range < 1L << 16) {
-				elements = new ShortArrayStore(strategy, elements);
-			} else if (range < 1L << 32) {
-				elements = new IntArrayStore(strategy, elements);
+			if (range > 0) {
+
+				Store newElements = null;
+				if (range == 0) {
+					newElements = new ConstantStore(strategy, elements);
+				} else if (range < 1L << 8) {
+					newElements = new ByteArrayStore(strategy, elements);
+				} else if (range < 1L << 16) {
+					newElements = new ShortArrayStore(strategy, elements);
+				} else if (range < 1L << 32) {
+					newElements = new IntArrayStore(strategy, elements);
+				}
+
+				if (newElements != null) {
+					elements.release();
+					elements = newElements;
+				}
 			}
 		} finally {
 			dirty = false;
@@ -441,23 +438,28 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		@Override
 		public Long next() {
 
-			// Only true if we've depleted this node
-			if (currentPos >= current.size) {
-				// Move to the right sibling node
-				current = stack.remove(stack.size() - 1).right;
-				currentPos = 0;
-			}
+			while (current != null) {
+				// Only true if we've depleted this node
+				if (currentPos >= current.size) {
+					// Move to the right sibling node
+					current = stack.remove(stack.size() - 1).right;
+					currentPos = 0;
+				}
 
-			// Move to the leftmost child
-			while (!current.isLeaf()) {
-				stack.add(current);
-				current = current.left;
-			}
+				// Move to the leftmost child
+				while (!current.isLeaf()) {
+					stack.add(current);
+					current = current.left;
+				}
 
-			// Iterate over current node
-			long v = current.elements.get(currentPos++);
-			pos++;
-			return v;
+				// Iterate over current node
+				if (currentPos < current.size) {
+					long v = current.elements.getLong(currentPos++);
+					pos++;
+					return v;
+				}
+			}
+			throw new IllegalStateException();
 
 		}
 
@@ -489,7 +491,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		}
 	}
 
-	public StorageStrategy getStorageStrategy() {
+	public Store getStorageStrategy() {
 		return elements;
 	}
 
@@ -508,7 +510,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			return Collections.binarySearch(elements, value, Comparator.naturalOrder());
 		}
 
-		if (right.size > 0 && right.getLong(0) >= value) {
+		if (right.size > 0 && right.getLong(0) <= value) {
 			int index = right.searchLong(value);
 			index += index < 0 ? -left.size : left.size;
 			return index;

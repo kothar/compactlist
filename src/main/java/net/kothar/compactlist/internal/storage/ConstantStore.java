@@ -14,7 +14,7 @@ public class ConstantStore extends AbstractStore {
 		this.size = size;
 	}
 
-	public ConstantStore(CompactionStrategy strategy, StorageStrategy elements) {
+	public ConstantStore(CompactionStrategy strategy, Store elements) {
 		super();
 		this.strategy = strategy;
 		this.compactValue = strategy.getCompactValue(0, elements.get(0));
@@ -50,13 +50,8 @@ public class ConstantStore extends AbstractStore {
 	}
 
 	@Override
-	public boolean inRange(int index, long value, boolean positionIndependent) {
+	public boolean inRange(int index, long value) {
 		return strategy.getCompactValue(index, value) == this.compactValue;
-	}
-
-	@Override
-	public boolean isPositionIndependent() {
-		return true;
 	}
 
 	@Override
@@ -77,6 +72,22 @@ public class ConstantStore extends AbstractStore {
 	@Override
 	public int appendCapacity() {
 		return size;
+	}
+
+	@Override
+	public Store[] split(int index) {
+		CompactionStrategy[] splitStrategies = strategy.split(index);
+
+		ConstantStore that = new ConstantStore(splitStrategies[1], compactValue, size - index);
+		strategy = splitStrategies[0];
+		size = index;
+
+		return new Store[] { this, that };
+	}
+
+	@Override
+	public void release() {
+		// Nothing to do
 	}
 
 }

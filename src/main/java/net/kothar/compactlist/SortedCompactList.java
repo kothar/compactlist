@@ -6,27 +6,48 @@ import java.util.Iterator;
 
 import net.kothar.compactlist.internal.Node;
 
-public class CompactList extends AbstractList<Long> implements LongList, Serializable {
+/**
+ * A sorted list of Longs. Values are sorted on insertion; as such, adding or setting a value at a
+ * specific index is unsupported.
+ * 
+ * @author mhouston
+ */
+public class SortedCompactList extends AbstractList<Long> implements LongList, Serializable {
 
-	private static final long serialVersionUID = -3558458042495888205L;
+	private static final long serialVersionUID = -1956627640749725601L;
 
 	Node root;
 
-	public CompactList() {
+	public SortedCompactList() {
 		root = new Node();
 	}
 
 	@Override
-	public void add(int index, Long element) {
-		addLong(index, element);
+	public boolean add(Long e) {
+		addLong(e);
+		return true;
 	}
 
 	@Override
-	public void addLong(int index, long element) {
-		if (index > size() || index < 0) {
-			throw new ArrayIndexOutOfBoundsException(index);
+	public void addLong(long e) {
+		int index = root.searchLong(e);
+		if (index < 0) {
+			root.addLong(-(1 + index), e);
+		} else {
+			root.addLong(index, e);
 		}
-		root.addLong(index, element);
+	}
+
+	@Override
+	@Deprecated
+	public void add(int index, Long element) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	@Deprecated
+	public void addLong(int index, long element) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -56,16 +77,15 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 	}
 
 	@Override
+	@Deprecated
 	public Long set(int index, Long element) {
-		return setLong(index, element);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
+	@Deprecated
 	public long setLong(int index, long element) {
-		if (index >= size() || index < 0) {
-			throw new ArrayIndexOutOfBoundsException(index);
-		}
-		return root.setLong(index, element);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -90,9 +110,7 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 	}
 
 	/**
-	 * Performs a search in the list to locate the index of the given value.
-	 * <p>
-	 * Assumes that the values are in ascending order.
+	 * Locates the index of the given value.
 	 * 
 	 * @param value
 	 *            The value to search for

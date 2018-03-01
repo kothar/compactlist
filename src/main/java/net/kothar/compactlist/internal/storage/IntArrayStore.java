@@ -4,16 +4,20 @@ import net.kothar.compactlist.internal.compaction.CompactionStrategy;
 
 public class IntArrayStore extends CompactStore<int[]> {
 
+	private IntArrayStore() {
+		super();
+	}
+
 	public IntArrayStore(CompactionStrategy strategy) {
 		super(strategy);
 	}
 
-	public IntArrayStore(CompactionStrategy strategy, StorageStrategy elements) {
+	public IntArrayStore(CompactionStrategy strategy, Store elements) {
 		super(strategy, elements.size(), elements.size());
 		copy(elements, 0);
 	}
 
-	public IntArrayStore(StorageStrategy elements, int offset, int size) {
+	public IntArrayStore(Store elements, int offset, int size) {
 		super(elements, offset, size);
 	}
 
@@ -40,6 +44,11 @@ public class IntArrayStore extends CompactStore<int[]> {
 	@Override
 	public int getWidth() {
 		return Integer.SIZE;
+	}
+
+	@Override
+	protected ArrayStore<int[]> newInstance() {
+		return new IntArrayStore();
 	}
 
 }

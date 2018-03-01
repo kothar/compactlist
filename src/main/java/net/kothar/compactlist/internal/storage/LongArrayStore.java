@@ -19,7 +19,7 @@ public class LongArrayStore extends ArrayStore<long[]> {
 		super(size, size + ALLOCATION_BUFFER);
 	}
 
-	public LongArrayStore(StorageStrategy elements) {
+	public LongArrayStore(Store elements) {
 		this(elements, 0, elements.size());
 	}
 
@@ -33,11 +33,12 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	 * @param size
 	 *            The number of elements to copy
 	 */
-	public LongArrayStore(StorageStrategy elements, int offset, int size) {
+	public LongArrayStore(Store elements, int offset, int size) {
 		super(size, size + ALLOCATION_BUFFER);
 
 		if (elements instanceof LongArrayStore) {
-			System.arraycopy(((LongArrayStore) elements).store, offset, store, 0, size);
+			LongArrayStore longStore = (LongArrayStore) elements;
+			System.arraycopy(longStore.store, offset + longStore.offset, store, 0, size);
 		} else {
 			for (int i = 0; i < size; i++) {
 				setElement(i, elements.get(i + offset));
@@ -56,7 +57,7 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	}
 
 	@Override
-	public boolean inRange(int index, long value, boolean positionIndependent) {
+	public boolean inRange(int index, long value) {
 		return true;
 	}
 
@@ -70,22 +71,23 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	 * 
 	 */
 	@Override
-	public void copy(StorageStrategy src, int dstOffset, int srcOffset, int length) {
+	public void copy(Store src, int dstOffset, int srcOffset, int length) {
 		if (src instanceof LongArrayStore) {
-			System.arraycopy(((LongArrayStore) src).store, srcOffset, store, dstOffset, length);
+			LongArrayStore longStore = (LongArrayStore) src;
+			System.arraycopy(longStore.store, srcOffset + longStore.offset, store, dstOffset + offset, length);
 		} else {
 			super.copy(src, dstOffset, srcOffset, length);
 		}
 	}
 
 	@Override
-	public boolean isPositionIndependent() {
-		return true;
+	public int getWidth() {
+		return Long.SIZE;
 	}
 
 	@Override
-	public int getWidth() {
-		return Long.SIZE;
+	protected ArrayStore<long[]> newInstance() {
+		return new LongArrayStore();
 	}
 
 }
