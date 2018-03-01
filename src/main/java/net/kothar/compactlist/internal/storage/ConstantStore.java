@@ -46,7 +46,7 @@ public class ConstantStore extends AbstractStore {
 	@Override
 	public long removeLong(int index) {
 		size--;
-		return compactValue;
+		return strategy.getRealValue(index, compactValue);
 	}
 
 	@Override

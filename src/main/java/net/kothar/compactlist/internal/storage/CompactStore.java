@@ -7,7 +7,7 @@ public abstract class CompactStore<T> extends ArrayStore<T> {
 
 	private CompactionStrategy strategy;
 
-	protected abstract boolean inRange(long value);
+	public abstract boolean inRange(long value);
 
 	public CompactStore(CompactionStrategy strategy) {
 		super();
@@ -34,8 +34,7 @@ public abstract class CompactStore<T> extends ArrayStore<T> {
 
 	@Override
 	public boolean inRange(int index, long value) {
-		long compactValue = strategy.getCompactValue(index, value);
-		return inRange(compactValue);
+		return strategy.inRange(index, value, this);
 	}
 
 	@Override

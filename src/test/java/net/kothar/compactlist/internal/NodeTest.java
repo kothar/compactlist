@@ -2,6 +2,8 @@ package net.kothar.compactlist.internal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -12,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import net.kothar.compactlist.CompactList;
+import net.kothar.compactlist.internal.storage.ArrayStore;
 import net.kothar.compactlist.internal.storage.LongArrayStore;
 import net.kothar.compactlist.internal.storage.ShortArrayStore;
 
@@ -22,7 +25,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testAdd() {
+	public void test_add() {
 		Node node = new Node();
 
 		node.addLong(0, 6);
@@ -33,7 +36,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testSet() {
+	public void test_set() {
 		Node node = new Node();
 
 		node.addLong(0, 6);
@@ -45,7 +48,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testRemove() {
+	public void test_remove() {
 		Node node = new Node();
 
 		node.addLong(0, 4);
@@ -67,7 +70,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testSplit() {
+	public void test_split() {
 		Node node = new Node();
 
 		node.addLong(0, 6);
@@ -86,7 +89,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testBalance() {
+	public void node_tree_correctly_balanced() {
 		Node node = new Node();
 
 		node.addLong(0, 0);
@@ -109,7 +112,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testMerge() {
+	public void test_merge() {
 		Node node = new Node();
 
 		node.addLong(0, 6);
@@ -125,7 +128,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testCompact() {
+	public void compacting_a_node_uses_appropriate_store() {
 		Node node = new Node();
 
 		node.addLong(0, 6);
@@ -148,7 +151,7 @@ public class NodeTest {
 	}
 
 	@Test
-	public void testUnCompact() {
+	public void out_of_range_insert_triggers_decompaction() {
 		Node node = new Node();
 
 		node.addLong(0, 6);
@@ -164,6 +167,48 @@ public class NodeTest {
 	}
 
 	@Test
+	public void shared_store_returned_to_neighbouring_stores() {
+		Node node = new Node();
+
+		// List of 5 elements
+		node.addLong(1);
+		node.addLong(2);
+		node.addLong(3);
+		node.addLong(4);
+		node.addLong(5);
+		assertEquals(5, node.size);
+		assertEquals(5, node.elements.size());
+
+		// Split into [1, 2, 3] and [4, 5]
+		node.split(3);
+
+		System.out.println(node.left);
+		System.out.println(node.right);
+		assertEquals(5, node.size);
+		assertEquals(3, node.left.size);
+		assertEquals(3, node.left.elements.size());
+		assertEquals(2, node.right.size);
+		assertEquals(2, node.right.elements.size());
+
+		assertNotNull(((ArrayStore<?>) node.left.elements).right);
+		assertNotNull(((ArrayStore<?>) node.right.elements).left);
+
+		// Insert element on left branch forcing reallocation
+		node.addLong(2, 100);
+
+		System.out.println(node.left);
+		System.out.println(node.right);
+		assertEquals(6, node.size);
+		assertEquals(4, node.left.size);
+		assertEquals(4, node.left.elements.size());
+		assertEquals(2, node.right.size);
+		assertEquals(2, node.right.elements.size());
+
+		assertNull(((ArrayStore<?>) node.left.elements).right);
+		assertNull(((ArrayStore<?>) node.right.elements).left);
+	}
+
+	@Test
 	public void testRandomOperations() {
 		Random r = new Random(29239);
 		List<Long> list = new ArrayList<>();
@@ -171,7 +216,7 @@ public class NodeTest {
 
 		String lastOp = "";
 
-		for (int i = 0; i < 1_000; i++) {
+		for (int i = 0; i < 5_000; i++) {
 			long v;
 			int index;
 			Long a;

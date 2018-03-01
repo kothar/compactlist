@@ -37,7 +37,7 @@ public class ByteArrayStore extends CompactStore<byte[]> {
 	}
 
 	@Override
-	protected boolean inRange(long compactValue) {
+	public boolean inRange(long compactValue) {
 		return compactValue >= 0 && compactValue < 1 << 8;
 	}
 

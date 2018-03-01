@@ -1,5 +1,7 @@
 package net.kothar.compactlist.internal.compaction;
 
+import net.kothar.compactlist.internal.storage.CompactStore;
+
 public class OffsetCompactionStrategy implements CompactionStrategy {
 
 	private static final long serialVersionUID = -4967610547335861332L;
@@ -32,6 +34,12 @@ public class OffsetCompactionStrategy implements CompactionStrategy {
 	@Override
 	public CompactionStrategy[] split(int index) {
 		return new CompactionStrategy[] { this, this };
+	}
+
+	@Override
+	public boolean inRange(int index, long realValue, CompactStore<?> store) {
+		long compactValue = getCompactValue(index, realValue);
+		return store.inRange(compactValue);
 	}
 
 }

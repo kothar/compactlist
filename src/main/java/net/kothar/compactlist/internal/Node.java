@@ -185,9 +185,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		size--;
 		if (!isLeaf() && size == 0) {
-			elements = left.elements;
-			left = null;
-			right = null;
+			release();
+			elements = new ShortArrayStore(new OffsetCompactionStrategy(0));
 			height = 0;
 			lastWrite = operation;
 			dirty = true;
@@ -195,6 +194,17 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			balance();
 		}
 		return oldValue;
+	}
+
+	private void release() {
+		if (!isLeaf()) {
+			left.release();
+			right.release();
+			left = null;
+			right = null;
+		} else {
+			elements.release();
+		}
 	}
 
 	protected void split(int pivot) {
@@ -371,8 +381,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 			// Choose an appropriate storage strategy for the range of compact values
 			// observed
-			if (range > 0) {
-
+			if (range >= 0) {
 				Store newElements = null;
 				if (range == 0) {
 					newElements = new ConstantStore(strategy, elements);

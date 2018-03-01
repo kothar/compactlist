@@ -24,7 +24,8 @@ public abstract class ArrayStore<T> extends AbstractStore {
 	 * Stores sharing the same backing array which may be handed a range when this store allocates a
 	 * new backing store.
 	 */
-	protected ArrayStore<T> left, right;
+	public ArrayStore<T>	left;
+	public ArrayStore<T>	right;
 
 	protected abstract T allocateArray(int length);
 
@@ -60,6 +61,7 @@ public abstract class ArrayStore<T> extends AbstractStore {
 	 * Release existing backing store claim. Further reads or writes will fain unless
 	 * {@link #allocate(int)} is called
 	 */
+	@Override
 	public void release() {
 
 		if (left != null) {
@@ -86,12 +88,12 @@ public abstract class ArrayStore<T> extends AbstractStore {
 
 	@Override
 	public int prependCapacity() {
-		return offset - base + size;
+		return offset - base;
 	}
 
 	@Override
 	public int appendCapacity() {
-		return limit - offset;
+		return limit - offset - size;
 	}
 
 	protected void setElement(int index, long value) {
@@ -141,7 +143,7 @@ public abstract class ArrayStore<T> extends AbstractStore {
 	 *            The position to insert a gap
 	 */
 	protected void expand(int index) {
-		if (offset > base && (index < size / 2 || offset + size == limit)) {
+		if (prependCapacity() > 0 && (index < size / 2 || appendCapacity() == 0)) {
 			// Add by prefix
 			offset--;
 			if (index > 0) {
@@ -150,28 +152,24 @@ public abstract class ArrayStore<T> extends AbstractStore {
 			}
 		} else {
 			// Add by suffix
-			T newStore = store;
-			int newOffset = offset;
-			int newLimit = limit;
-			if (offset + size == limit) {
+			if (appendCapacity() == 0) {
 				// Re-allocate
-				newLimit = (int) (size * EXPANSION_FACTOR + ALLOCATION_BUFFER);
-				newStore = allocateArray(newLimit);
-				newOffset = 0;
+				int capacity = (int) (size * EXPANSION_FACTOR + ALLOCATION_BUFFER);
+				T newStore = allocateArray(capacity);
 				if (index > 0) {
 					System.arraycopy(store, offset, newStore, 0, index);
 				}
-			}
-			if (index < size) {
-				System.arraycopy(store, offset + index, newStore, newOffset + index + 1, size - index);
-			}
+				if (index < size) {
+					System.arraycopy(store, offset + index, newStore, index + 1, size - index);
+				}
 
-			if (store != newStore) {
 				release();
 				store = newStore;
 				base = 0;
-				offset = newOffset;
-				limit = newLimit;
+				offset = 0;
+				limit = capacity;
+			} else if (index < size) {
+				System.arraycopy(store, offset + index, store, offset + index + 1, size - index);
 			}
 		}
 		size++;
@@ -182,15 +180,23 @@ public abstract class ArrayStore<T> extends AbstractStore {
 		ArrayStore<T> that = newInstance();
 
 		that.store = store;
-		that.base = that.offset = offset + index;
+		that.base = offset + index;
+		that.offset = that.base;
 		that.size = size - index;
 		that.limit = limit;
+
 		that.left = this;
-		that.right = right;
+		if (this.right != null) {
+			this.right.left = that;
+			that.right = right;
+		}
 
 		this.size = index;
-		this.limit = offset + index;
+		this.limit = that.base;
+
 		this.right = that;
+
+		assert this.size == that.offset - this.offset;
 
 		return new Store[] { this, that };
 	}

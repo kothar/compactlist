@@ -36,6 +36,8 @@ public class CompactListBenchmark {
 		void clear();
 
 		long memoryUsage();
+
+		long compactMemoryUsage();
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -49,24 +51,22 @@ public class CompactListBenchmark {
 		System.out.println("Test\t\tCount\t\tClass\t\t\tElapsed");
 
 		Map<String, Test> tests = new LinkedHashMap<>();
+		tests.put("remove", removeRandom);
 		tests.put("append", appendSequential);
 		tests.put("appendRandom", appendRandom);
 		tests.put("insert", insertSequential);
 		tests.put("set", setSeq);
-		tests.put("remove", removeRandom);
 
 		for (Entry<String, Test> testEntry : tests.entrySet()) {
 
 			Map<Class<? extends LongList>, Map<Integer, Double>> testData = new LinkedHashMap<>();
 			Map<Class<? extends LongList>, Map<Integer, Long>> testMemory = new LinkedHashMap<>();
+			Map<Integer, Long> compactMemory = new TreeMap<>();
 
 			for (Class<? extends LongList> impl : Arrays.asList(
 				CompactList.class,
 				ArrayListWrapper.class,
-				TroveListWrapper.class/*
-										 * , CSViewLongList.class
-										 */
-			)) {
+				TroveListWrapper.class)) {
 
 				TreeMap<Integer, Double> classData = new TreeMap<>();
 				testData.put(impl, classData);
@@ -88,6 +88,10 @@ public class CompactListBenchmark {
 
 						classData.put(size, elapsed);
 						classMemory.put(size, test.memoryUsage());
+
+						if (impl.equals(CompactList.class)) {
+							compactMemory.put(size, test.compactMemoryUsage());
+						}
 
 						if (elapsed > 3_000) {
 							break;
@@ -164,6 +168,9 @@ public class CompactListBenchmark {
 						new ArrayList<Long>(classData.getValue().values()));
 				}
 			}
+			chart.addSeries("CompactList (compacted)",
+				new ArrayList<Integer>(compactMemory.keySet()),
+				new ArrayList<Long>(compactMemory.values()));
 
 			// Save it
 			BitmapEncoder.saveBitmap(chart, "img/" + testEntry.getKey() + "_mem.png", BitmapFormat.PNG);
@@ -207,6 +214,12 @@ public class CompactListBenchmark {
 		public long memoryUsage() {
 			return sizeof(list);
 		}
+
+		@Override
+		public long compactMemoryUsage() {
+			((CompactList) list).compact();
+			return memoryUsage();
+		}
 	};
 
 	private static Test appendRandom = new Test() {
@@ -249,6 +262,12 @@ public class CompactListBenchmark {
 		public long memoryUsage() {
 			return sizeof(list);
 		}
+
+		@Override
+		public long compactMemoryUsage() {
+			((CompactList) list).compact();
+			return memoryUsage();
+		}
 	};
 
 	private static Test insertSequential = new Test() {
@@ -290,6 +309,12 @@ public class CompactListBenchmark {
 		@Override
 		public long memoryUsage() {
 			return sizeof(list);
+		}
+
+		@Override
+		public long compactMemoryUsage() {
+			((CompactList) list).compact();
+			return memoryUsage();
 		}
 	};
 
@@ -335,6 +360,12 @@ public class CompactListBenchmark {
 		public long memoryUsage() {
 			return sizeof(list);
 		}
+
+		@Override
+		public long compactMemoryUsage() {
+			((CompactList) list).compact();
+			return memoryUsage();
+		}
 	};
 
 	private static Test setSeq = new Test() {
@@ -379,6 +410,12 @@ public class CompactListBenchmark {
 		public long memoryUsage() {
 			return sizeof(list);
 		}
+
+		@Override
+		public long compactMemoryUsage() {
+			((CompactList) list).compact();
+			return memoryUsage();
+		}
 	};
 
 	private static Test setRand = new Test() {
@@ -422,6 +459,12 @@ public class CompactListBenchmark {
 		@Override
 		public long memoryUsage() {
 			return sizeof(list);
+		}
+
+		@Override
+		public long compactMemoryUsage() {
+			((CompactList) list).compact();
+			return memoryUsage();
 		}
 	};
 
