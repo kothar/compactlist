@@ -155,12 +155,12 @@ public class NodeTest {
 		node.addLong(0, 5);
 		node.compact();
 
-		assertFalse(node.elements.inRange(0, -512, false));
+		assertFalse(node.elements.inRange(0, -512));
 
 		node.addLong(0, -512);
 		assertEquals(3, node.size());
 		assertEquals(-512, node.getLong(0));
-		assertTrue(node.elements.inRange(0, -512, true));
+		assertTrue(node.elements.inRange(0, -512));
 	}
 
 	@Test

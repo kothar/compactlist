@@ -11,9 +11,10 @@ import java.util.function.Consumer;
 
 import org.junit.Test;
 
+import net.kothar.compactlist.internal.storage.LongArrayStore;
+
 public class CompactionTest {
 	private static final List<Class<? extends CompactionStrategy>> strategies = Arrays.asList(
-		LinearPredictionCompactionStrategy.class,
 		OffsetCompactionStrategy.class);
 
 	@Test
@@ -127,7 +128,9 @@ public class CompactionTest {
 	}
 
 	private void testEach(Consumer<CompactionStrategy> test, List<Long> values) {
-		StorageAnalysis analysis = new StorageAnalysis(values);
+		LongArrayStore store = new LongArrayStore();
+		store.addAll(values);
+		StorageAnalysis analysis = new StorageAnalysis(store);
 		try {
 			for (Class<? extends CompactionStrategy> c : strategies) {
 				CompactionStrategy strategy = c.getConstructor(StorageAnalysis.class).newInstance(analysis);

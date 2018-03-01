@@ -3,26 +3,20 @@ package net.kothar.compactlist.internal.storage;
 import java.io.Serializable;
 import java.util.List;
 
+import net.kothar.compactlist.LongList;
+
 /**
  * Encapsulates a strategy for storing a list of long values in a leaf node
  */
-public interface Store extends List<Long>, Serializable {
+public interface Store extends LongList, List<Long>, Serializable {
 
 	void setSize(int size);
 
 	void allocate(int size);
 
-	long getLong(int index);
+	void release();
 
-	void addLong(int index, long value);
-
-	long setLong(int index, long value);
-
-	long removeLong(int index);
-
-	boolean inRange(int index, long value, boolean positionIndependent);
-
-	boolean isPositionIndependent();
+	boolean inRange(int index, long value);
 
 	int capacity();
 

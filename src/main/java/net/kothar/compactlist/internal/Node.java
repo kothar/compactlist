@@ -25,7 +25,8 @@ import net.kothar.compactlist.internal.storage.Store;
 
 public class Node implements Iterable<Long>, LongList, Serializable {
 
-	private static final Logger log = LoggerFactory.getLogger(Node.class);
+	private static final Logger		log		= LoggerFactory.getLogger(Node.class);
+	private static final boolean	trace	= log.isTraceEnabled();
 
 	private static final long serialVersionUID = 3105932349913959938L;
 
@@ -88,7 +89,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		assert index < size && index >= 0;
 
 		// Replace with non-compact representation if out of range
-		if (isLeaf() && !elements.inRange(index, element, true)) {
+		// TODO evaluate storage range
+		if (isLeaf() && !elements.inRange(index, element)) {
 			elements = new LongArrayStore(elements, 0, size);
 			dirty = true;
 		}
@@ -116,12 +118,14 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		}
 
 		// Split
-		if (isLeaf() && size >= TARGET_LEAF_SIZE) {
-			if (index == size && size < MAX_LEAF_SIZE) {
-				// Don't split if we are appending
-			} else {
-				split(index);
-			}
+		if (isLeaf()
+			&& size >= TARGET_LEAF_SIZE
+			&& (index < size // Insert
+				|| size >= MAX_LEAF_SIZE // Too big
+				|| !elements.inRange(index, element) // Out of range
+				|| elements.capacity() == 0 // Allocation required
+			)) {
+			split(index);
 		}
 
 		if (isLeaf()) {
@@ -130,7 +134,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 			// Replace with non-compact representation if out of range
 			// TODO perform storage analysis
-			if (!elements.inRange(index, element, index < size)) {
+			if (!elements.inRange(index, element)) {
 				LongArrayStore newElements = new LongArrayStore(size + 1);
 				newElements.copy(elements, 0, 0, index);
 				newElements.set(index, element);
@@ -195,7 +199,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	protected void split(int pivot) {
 
-		log.trace("split {}: {}", pivot, this);
+		if (trace)
+			log.trace("split {}: {}", pivot, this);
 
 		if (isLeaf()) {
 			if (pivot == size) {
@@ -226,7 +231,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	protected void merge() {
 
-		log.trace("merge: {}", this);
+		if (trace)
+			log.trace("merge: {}", this);
 
 		// TODO analyse elements to determine range required
 		LongArrayStore target = new LongArrayStore(size);
@@ -247,6 +253,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			if (size > 0) {
 				target.copy(elements, offset);
 			}
+			elements.release();
 		} else {
 			left.mergeElements(target, offset);
 			right.mergeElements(target, offset + left.size);
@@ -299,7 +306,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 	public void compact() {
 
-		log.trace("compact: {}", this);
+		if (trace)
+			log.trace("compact: {}", this);
 
 		if (!isLeaf()) {
 			if (size <= TARGET_LEAF_SIZE) {
@@ -319,6 +327,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		try {
 			if (size == 0) {
 				// Edge case where all elements have been removed from a leaf
+				elements.release();
 				elements = new ConstantStore(new OffsetCompactionStrategy(0), 0, 0);
 				return;
 			}
@@ -328,7 +337,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 			List<CompactionEvaluator> evaluators = new ArrayList<>();
 			evaluators.add(new CompactionEvaluator(new OffsetCompactionStrategy(analysis)));
-//			evaluators.add(new CompactionEvaluator(new LinearPredictionCompactionStrategy(analysis)));
 
 			// Evaluate available compaction strategies
 			for (int i = 0; i < size && !evaluators.isEmpty(); i++) {
@@ -344,7 +352,9 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			if (evaluators.isEmpty()) {
 				// We may still be able to truncate the storage
 				if (elements instanceof LongArrayStore && elements.capacity() > TARGET_LEAF_SIZE) {
-					elements = new LongArrayStore(elements);
+					LongArrayStore newElements = new LongArrayStore(elements);
+					elements.release();
+					elements = newElements;
 				}
 				return;
 			}
@@ -362,14 +372,21 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			// Choose an appropriate storage strategy for the range of compact values
 			// observed
 			if (range > 0) {
+
+				Store newElements = null;
 				if (range == 0) {
-					elements = new ConstantStore(strategy, elements);
+					newElements = new ConstantStore(strategy, elements);
 				} else if (range < 1L << 8) {
-					elements = new ByteArrayStore(strategy, elements);
+					newElements = new ByteArrayStore(strategy, elements);
 				} else if (range < 1L << 16) {
-					elements = new ShortArrayStore(strategy, elements);
+					newElements = new ShortArrayStore(strategy, elements);
 				} else if (range < 1L << 32) {
-					elements = new IntArrayStore(strategy, elements);
+					newElements = new IntArrayStore(strategy, elements);
+				}
+
+				if (newElements != null) {
+					elements.release();
+					elements = newElements;
 				}
 			}
 		} finally {

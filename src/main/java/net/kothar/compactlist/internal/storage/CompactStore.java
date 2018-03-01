@@ -2,7 +2,6 @@ package net.kothar.compactlist.internal.storage;
 
 import net.kothar.compactlist.internal.compaction.CompactionStrategy;
 import net.kothar.compactlist.internal.compaction.OffsetCompactionStrategy;
-import net.kothar.compactlist.internal.compaction.PositionIndependentCompactionStrategy;
 
 public abstract class CompactStore<T> extends ArrayStore<T> {
 
@@ -34,16 +33,7 @@ public abstract class CompactStore<T> extends ArrayStore<T> {
 	}
 
 	@Override
-	public boolean isPositionIndependent() {
-		return strategy instanceof PositionIndependentCompactionStrategy;
-	};
-
-	@Override
-	public boolean inRange(int index, long value, boolean positionIndependent) {
-		if (index < size && !(positionIndependent || isPositionIndependent())) {
-			return false;
-		}
-
+	public boolean inRange(int index, long value) {
 		long compactValue = strategy.getCompactValue(index, value);
 		return inRange(compactValue);
 	}

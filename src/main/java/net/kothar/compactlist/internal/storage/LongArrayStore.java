@@ -57,7 +57,7 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	}
 
 	@Override
-	public boolean inRange(int index, long value, boolean positionIndependent) {
+	public boolean inRange(int index, long value) {
 		return true;
 	}
 
@@ -78,11 +78,6 @@ public class LongArrayStore extends ArrayStore<long[]> {
 		} else {
 			super.copy(src, dstOffset, srcOffset, length);
 		}
-	}
-
-	@Override
-	public boolean isPositionIndependent() {
-		return true;
 	}
 
 	@Override

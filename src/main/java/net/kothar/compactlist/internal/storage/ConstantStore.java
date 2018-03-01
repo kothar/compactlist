@@ -50,13 +50,8 @@ public class ConstantStore extends AbstractStore {
 	}
 
 	@Override
-	public boolean inRange(int index, long value, boolean positionIndependent) {
+	public boolean inRange(int index, long value) {
 		return strategy.getCompactValue(index, value) == this.compactValue;
-	}
-
-	@Override
-	public boolean isPositionIndependent() {
-		return true;
 	}
 
 	@Override
@@ -88,6 +83,11 @@ public class ConstantStore extends AbstractStore {
 		size = index;
 
 		return new Store[] { this, that };
+	}
+
+	@Override
+	public void release() {
+		// Nothing to do
 	}
 
 }

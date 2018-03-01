@@ -1,6 +1,6 @@
 package net.kothar.compactlist.internal.compaction;
 
-public class OffsetCompactionStrategy implements CompactionStrategy, PositionIndependentCompactionStrategy {
+public class OffsetCompactionStrategy implements CompactionStrategy {
 
 	private static final long serialVersionUID = -4967610547335861332L;
 
