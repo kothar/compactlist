@@ -490,7 +490,7 @@ public class CompactListBenchmark {
 		long elapsed = System.nanoTime() - start;
 		int runs = 1;
 
-		while (elapsed < 10_000_000 || runs < 3) {
+		while (elapsed < 100_000_000 || runs < 3) {
 			test.reset();
 			runs++;
 			test.run();

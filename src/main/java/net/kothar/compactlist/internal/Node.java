@@ -31,7 +31,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	private static final long serialVersionUID = 3105932349913959938L;
 
 	private static final int	READ_COMPACTION_DELAY	= 1 << 10;
-	private static final int	TARGET_LEAF_SIZE		= 1 << 16;
+	private static final int	TARGET_LEAF_SIZE		= 1 << 15;
 	private static final int	MAX_LEAF_SIZE			= 1 << 20;
 
 	protected int		size;
