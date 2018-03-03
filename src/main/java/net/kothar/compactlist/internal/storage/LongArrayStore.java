@@ -1,7 +1,5 @@
 package net.kothar.compactlist.internal.storage;
 
-import net.kothar.compactlist.internal.compaction.CompactionStrategy;
-
 public class LongArrayStore extends ArrayStore<long[]> {
 
 	private static final long serialVersionUID = 1828783964482947863L;
@@ -10,10 +8,6 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	 * Creates a new empty store
 	 */
 	public LongArrayStore() {
-		super();
-	}
-
-	public LongArrayStore(CompactionStrategy strategy) {
 		super();
 	}
 
