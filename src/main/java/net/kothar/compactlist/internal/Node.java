@@ -25,24 +25,19 @@ import net.kothar.compactlist.internal.storage.Store;
 
 public class Node implements Iterable<Long>, LongList, Serializable {
 
+	private static final long serialVersionUID = 3418582865627235043L;
+
 	private static final Logger		log		= LoggerFactory.getLogger(Node.class);
 	private static final boolean	trace	= log.isTraceEnabled();
 
-	private static final long serialVersionUID = 3105932349913959938L;
-
-	private static final int	READ_COMPACTION_DELAY	= 1 << 10;
-	private static final int	TARGET_LEAF_SIZE		= 1 << 15;
-	private static final int	MAX_LEAF_SIZE			= 1 << 20;
+	private static final int	TARGET_LEAF_SIZE	= (1 << 16) - 1;
+	private static final int	MAX_LEAF_SIZE		= 1 << 20;
 
 	protected int		size;
 	protected Store		elements;
 	protected Node		left, right;
 	protected int		height;
 	protected boolean	dirty	= true;
-	protected long		operation,
-		lastRead,
-		lastWrite,
-		lastCompaction;
 
 	public Node() {
 		this(new ShortArrayStore(new OffsetCompactionStrategy(0)));
@@ -68,10 +63,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		// Leaf
 		if (isLeaf()) {
-			lastRead = ++operation;
-			if (dirty && lastRead - lastWrite > READ_COMPACTION_DELAY) {
-				compact();
-			}
 			return elements.getLong(index);
 		}
 
@@ -97,7 +88,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		// Leaf
 		if (isLeaf()) {
-			lastWrite = ++operation;
 			return elements.setLong(index, element);
 		} else if (index < left.size) {
 			// Left branch
@@ -130,8 +120,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		if (isLeaf()) {
 			// Leaf
-			lastWrite = ++operation;
-
 			// Replace with non-compact representation if out of range
 			// TODO perform storage analysis
 			if (!elements.inRange(index, element)) {
@@ -168,7 +156,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		long oldValue;
 		if (isLeaf()) {
-			lastWrite = ++operation;
 			if (index == 0 || index == size - 1) {
 				oldValue = elements.removeLong(index);
 			} else {
@@ -188,7 +175,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			release();
 			elements = new ShortArrayStore(new OffsetCompactionStrategy(0));
 			height = 0;
-			lastWrite = operation;
 			dirty = true;
 		} else {
 			balance();
@@ -255,7 +241,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		right = null;
 		height = 0;
 		dirty = true;
-		lastWrite = lastRead = operation = 0;
 	}
 
 	protected void mergeElements(LongArrayStore target, int offset) {
@@ -400,7 +385,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			}
 		} finally {
 			dirty = false;
-			lastCompaction = operation;
 		}
 	}
 
