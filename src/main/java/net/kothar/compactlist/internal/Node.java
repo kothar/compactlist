@@ -29,19 +29,73 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	private static final int	TARGET_LEAF_SIZE	= (1 << 16) - 1;
 	private static final int	MAX_LEAF_SIZE		= 1 << 20;
 
-	protected int		size;
-	protected Store		elements;
-	protected Node		left, right;
-	protected int		height;
-	protected boolean	dirty	= true;
+	protected int	size;
+	protected Store	elements;
+	protected Node	left, right;
+	protected int	height;
+
+	boolean		dirty;
+	DirtyList	dirtyList;
+	Node		prevDirty;
+	Node		nextDirty;
 
 	public Node() {
-		this(new ShortArrayStore(0));
+		this(new DirtyList());
 	}
 
-	public Node(Store elements) {
+	protected Node(DirtyList dirtyList) {
+		this(dirtyList, new LongArrayStore());
+	}
+
+	protected Node(DirtyList dirtyList, Store elements) {
+		this(dirtyList, elements, true);
+	}
+
+	public Node(DirtyList dirtyList, Store elements, boolean dirty) {
+		this.dirtyList = dirtyList;
 		this.elements = elements;
 		this.size = elements.size();
+		if (dirty) {
+			markDirty();
+		}
+	}
+
+	private void markDirty() {
+		// Remove if already in list
+		removeDirty();
+
+		// Add to tail of list
+		prevDirty = dirtyList.tail;
+		dirtyList.tail = this;
+		if (dirtyList.head == null) {
+			dirtyList.head = this;
+		}
+		dirty = true;
+	}
+
+	private void removeDirty() {
+		if (!dirty) {
+			return;
+		}
+		if (prevDirty != null) {
+			prevDirty.nextDirty = nextDirty;
+			prevDirty = null;
+		} else {
+			dirtyList.head = nextDirty;
+		}
+		if (nextDirty != null) {
+			nextDirty.prevDirty = prevDirty;
+			nextDirty = null;
+		} else {
+			dirtyList.tail = prevDirty;
+		}
+		dirty = false;
+	}
+
+	public void maintain() {
+		if (dirtyList.head != null) {
+			dirtyList.head.compact();
+		}
 	}
 
 	private boolean isLeaf() {
@@ -78,8 +132,8 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		// Replace with non-compact representation if out of range
 		// TODO evaluate storage range
 		if (isLeaf() && !elements.inRange(element)) {
-			elements = new LongArrayStore(elements, 0, size);
-			dirty = true;
+			elements = new LongArrayStore(elements);
+			markDirty();
 		}
 
 		// Leaf
@@ -124,7 +178,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 				newElements.set(index, element);
 				newElements.copy(elements, index + 1, index, size - index);
 				elements = newElements;
-				dirty = true;
+				markDirty();
 			} else {
 				elements.addLong(index, element);
 			}
@@ -171,7 +225,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			release();
 			elements = new ConstantStore(0, 0);
 			height = 0;
-			dirty = true;
 		} else {
 			balance();
 		}
@@ -186,6 +239,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			right = null;
 		} else {
 			elements.release();
+			removeDirty();
 		}
 	}
 
@@ -196,19 +250,20 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 
 		if (isLeaf()) {
 			if (pivot == size) {
-				left = new Node(elements);
-				right = new Node(new ShortArrayStore(elements.getLong(pivot - 1)));
+				left = new Node(dirtyList, elements, dirty);
+				right = new Node(dirtyList, new LongArrayStore());
 			} else if (pivot == 0) {
-				left = new Node(new ShortArrayStore(elements.getLong(0)));
-				right = new Node(elements);
+				left = new Node(dirtyList, new LongArrayStore());
+				right = new Node(dirtyList, elements, dirty);
 			} else {
 				Store[] splitElements = elements.split(pivot);
-				left = new Node(splitElements[0]);
-				right = new Node(splitElements[1]);
+				left = new Node(dirtyList, splitElements[0], dirty);
+				right = new Node(dirtyList, splitElements[1], dirty);
 			}
 
 			elements = null;
 			height = 1;
+			removeDirty();
 
 			assert left.size == pivot;
 			assert right.size == size - pivot;
@@ -222,7 +277,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 	}
 
 	protected void merge() {
-
 		if (trace)
 			log.trace("merge: {}", this);
 
@@ -236,7 +290,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		left = null;
 		right = null;
 		height = 0;
-		dirty = true;
+		markDirty();
 	}
 
 	protected void mergeElements(LongArrayStore target, int offset) {
@@ -245,6 +299,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 				target.copy(elements, offset);
 			}
 			elements.release();
+			removeDirty();
 		} else {
 			left.mergeElements(target, offset);
 			right.mergeElements(target, offset + left.size);
@@ -311,10 +366,6 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 			}
 		}
 
-		if (!dirty) {
-			return;
-		}
-
 		try {
 			if (size == 0) {
 				// Edge case where all elements have been removed from a leaf
@@ -347,7 +398,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 				}
 			}
 		} finally {
-			dirty = false;
+			removeDirty();
 		}
 	}
 
@@ -447,7 +498,7 @@ public class Node implements Iterable<Long>, LongList, Serializable {
 		}
 	}
 
-	public Store getStorageStrategy() {
+	public Store getStorage() {
 		return elements;
 	}
 

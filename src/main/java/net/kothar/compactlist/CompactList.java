@@ -10,10 +10,19 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 
 	private static final long serialVersionUID = -3558458042495888205L;
 
-	Node root;
+	private static final long MAINTENANCE_CYCLE = 1 << 18;
+
+	long	operation	= 0;
+	Node	root;
 
 	public CompactList() {
 		root = new Node();
+	}
+
+	private void maintain() {
+		if (++operation % MAINTENANCE_CYCLE == 0) {
+			root.maintain();
+		}
 	}
 
 	@Override
@@ -27,6 +36,7 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 			throw new ArrayIndexOutOfBoundsException(index);
 		}
 		root.addLong(index, element);
+		maintain();
 	}
 
 	@Override
@@ -39,7 +49,9 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 		if (index >= size() || index < 0) {
 			throw new ArrayIndexOutOfBoundsException(index);
 		}
-		return root.removeLong(index);
+		long result = root.removeLong(index);
+		maintain();
+		return result;
 	}
 
 	@Override
@@ -52,7 +64,9 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 		if (index >= size() || index < 0) {
 			throw new ArrayIndexOutOfBoundsException(index);
 		}
-		return root.getLong(index);
+		long result = root.getLong(index);
+		maintain();
+		return result;
 	}
 
 	@Override
@@ -65,7 +79,9 @@ public class CompactList extends AbstractList<Long> implements LongList, Seriali
 		if (index >= size() || index < 0) {
 			throw new ArrayIndexOutOfBoundsException(index);
 		}
-		return root.setLong(index, element);
+		long result = root.setLong(index, element);
+		maintain();
+		return result;
 	}
 
 	@Override

@@ -56,6 +56,7 @@ public class CompactListBenchmark {
 		tests.put("insert", insertSequential);
 		tests.put("set", setSeq);
 		tests.put("setRandom", setRand);
+		tests.put("get", getSeq);
 		tests.put("remove", removeRandom);
 
 		for (Entry<String, Test> testEntry : tests.entrySet()) {
@@ -396,12 +397,11 @@ public class CompactListBenchmark {
 		private Random						r;
 		private LongList					list;
 		private Class<? extends LongList>	impl;
-		private int[]						positions;
 
 		@Override
 		public void run() {
 			for (int i = 0; i < size; i++) {
-				list.setLong(positions[i], i);
+				list.setLong(i, i);
 			}
 		}
 
@@ -417,12 +417,7 @@ public class CompactListBenchmark {
 				r = new Random(size);
 				list = impl.newInstance();
 				for (long i = 0; i < size; i++) {
-					list.addLong(i);
-				}
-				this.positions = new int[size];
-
-				for (int i = 0; i < size; i++) {
-					positions[i] = r.nextInt(size);
+					list.addLong(r.nextInt());
 				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -503,6 +498,54 @@ public class CompactListBenchmark {
 		}
 	};
 
+	private static Test getSeq = new Test() {
+		private int							size;
+		private LongList					list;
+		private Class<? extends LongList>	impl;
+		public long							x;
+
+		@Override
+		public void run() {
+			for (int i = 0; i < size; i++) {
+				x = list.getLong(i);
+			}
+		}
+
+		@Override
+		public void init(Class<? extends LongList> impl, int size) {
+			this.impl = impl;
+			this.size = size;
+		}
+
+		@Override
+		public void reset() {
+			try {
+				list = impl.newInstance();
+				for (long i = 0; i < size; i++) {
+					list.addLong(i);
+				}
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void clear() {
+			list = null;
+		}
+
+		@Override
+		public long memoryUsage() {
+			return sizeof(list);
+		}
+
+		@Override
+		public long compactMemoryUsage() {
+			((CompactList) list).compact();
+			return memoryUsage();
+		}
+	};
+
 	private static void warmup(Class<? extends LongList> impl, Test test, int maxListSize) {
 		System.out.println("Warming up " + impl.getSimpleName());
 		int size = 1 << maxListSize / 2;
@@ -558,7 +601,7 @@ public class CompactListBenchmark {
 					// This approximates the true size based to the number of leaves, but doesn't
 					// account for other nodes
 					size.value += 24;
-					Store storageStrategy = leaf.getStorageStrategy();
+					Store storageStrategy = leaf.getStorage();
 					if (storageStrategy != null) {
 						size.value += (long) leaf.size() * storageStrategy.getWidth() / 8;
 					}
