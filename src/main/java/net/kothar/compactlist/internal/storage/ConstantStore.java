@@ -1,23 +1,20 @@
 package net.kothar.compactlist.internal.storage;
 
-import net.kothar.compactlist.internal.compaction.CompactionStrategy;
-
 public class ConstantStore extends AbstractStore {
 
-	private long				compactValue;
-	private CompactionStrategy	strategy;
+	private static final long serialVersionUID = -6037938423175067220L;
 
-	public ConstantStore(CompactionStrategy strategy, long compactValue, int size) {
+	private long value;
+
+	public ConstantStore(long value, int size) {
 		super();
-		this.strategy = strategy;
-		this.compactValue = compactValue;
+		this.value = value;
 		this.size = size;
 	}
 
-	public ConstantStore(CompactionStrategy strategy, Store elements) {
+	public ConstantStore(Store elements) {
 		super();
-		this.strategy = strategy;
-		this.compactValue = strategy.getCompactValue(0, elements.get(0));
+		this.value = elements.get(0);
 		this.size = elements.size();
 	}
 
@@ -28,30 +25,30 @@ public class ConstantStore extends AbstractStore {
 
 	@Override
 	public long getLong(int index) {
-		return strategy.getRealValue(index, compactValue);
+		return value;
 	}
 
 	@Override
 	public void addLong(int index, long value) {
-		assert strategy.getCompactValue(index, value) == this.compactValue;
+		assert value == this.value;
 		size++;
 	}
 
 	@Override
 	public long setLong(int index, long value) {
-		assert strategy.getCompactValue(index, value) == this.compactValue;
+		assert value == this.value;
 		return value;
 	}
 
 	@Override
 	public long removeLong(int index) {
 		size--;
-		return strategy.getRealValue(index, compactValue);
+		return value;
 	}
 
 	@Override
-	public boolean inRange(int index, long value) {
-		return strategy.getCompactValue(index, value) == this.compactValue;
+	public boolean inRange(long value) {
+		return value == this.value;
 	}
 
 	@Override
@@ -76,12 +73,8 @@ public class ConstantStore extends AbstractStore {
 
 	@Override
 	public Store[] split(int index) {
-		CompactionStrategy[] splitStrategies = strategy.split(index);
-
-		ConstantStore that = new ConstantStore(splitStrategies[1], compactValue, size - index);
-		strategy = splitStrategies[0];
+		ConstantStore that = new ConstantStore(value, size - index);
 		size = index;
-
 		return new Store[] { this, that };
 	}
 

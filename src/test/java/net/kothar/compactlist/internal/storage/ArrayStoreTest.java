@@ -5,16 +5,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
 import org.junit.Test;
-
-import net.kothar.compactlist.internal.compaction.CompactionStrategy;
-import net.kothar.compactlist.internal.compaction.OffsetCompactionStrategy;
 
 public class ArrayStoreTest {
 
@@ -182,12 +178,10 @@ public class ArrayStoreTest {
 	private void testEach(Consumer<ArrayStore<?>> test) {
 		try {
 			for (Class<? extends ArrayStore<?>> c : strategies) {
-				ArrayStore<?> store = c.getConstructor(CompactionStrategy.class)
-					.newInstance(new OffsetCompactionStrategy(0));
+				ArrayStore<?> store = c.newInstance();
 				test.accept(store);
 			}
-		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-			| NoSuchMethodException | SecurityException e) {
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | SecurityException e) {
 			throw new RuntimeException(e);
 		}
 	}

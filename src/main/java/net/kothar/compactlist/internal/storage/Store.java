@@ -16,7 +16,7 @@ public interface Store extends LongList, List<Long>, Serializable {
 
 	void release();
 
-	boolean inRange(int index, long value);
+	boolean inRange(long value);
 
 	int capacity();
 

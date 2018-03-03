@@ -55,6 +55,7 @@ public class CompactListBenchmark {
 		tests.put("appendRandom", appendRandom);
 		tests.put("insert", insertSequential);
 		tests.put("set", setSeq);
+		tests.put("setRandom", setRand);
 		tests.put("remove", removeRandom);
 
 		for (Entry<String, Test> testEntry : tests.entrySet()) {
@@ -182,6 +183,7 @@ public class CompactListBenchmark {
 		private LongList					list;
 		private int							size;
 		private Class<? extends LongList>	impl;
+		private long[]						values;
 
 		@Override
 		public void init(Class<? extends LongList> impl, int size) {
@@ -192,7 +194,7 @@ public class CompactListBenchmark {
 		@Override
 		public void run() {
 			for (int i = 0; i < size; i++) {
-				list.addLong(i);
+				list.addLong(values[i]);
 			}
 		}
 
@@ -200,6 +202,10 @@ public class CompactListBenchmark {
 		public void reset() {
 			try {
 				list = impl.newInstance();
+				values = new long[size];
+				for (int i = 0; i < size; i++) {
+					values[i] = i;
+				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -225,6 +231,7 @@ public class CompactListBenchmark {
 	private static Test appendRandom = new Test() {
 
 		private LongList					list;
+		private long[]						values;
 		private int							size;
 		private Random						r;
 		private Class<? extends LongList>	impl;
@@ -238,7 +245,7 @@ public class CompactListBenchmark {
 		@Override
 		public void run() {
 			for (int i = 0; i < size; i++) {
-				list.addLong(r.nextInt(size));
+				list.addLong(values[i]);
 			}
 		}
 
@@ -247,6 +254,10 @@ public class CompactListBenchmark {
 			try {
 				r = new Random(size);
 				list = impl.newInstance();
+				values = new long[size];
+				for (int i = 0; i < size; i++) {
+					values[i] = r.nextInt();
+				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -256,6 +267,7 @@ public class CompactListBenchmark {
 		public void clear() {
 			list = null;
 			r = null;
+			values = null;
 		}
 
 		@Override
@@ -275,12 +287,13 @@ public class CompactListBenchmark {
 		private Random						r;
 		private LongList					list;
 		private Class<? extends LongList>	impl;
+		private int[]						positions;
 
 		@Override
 		public void run() {
 			list.addLong(0, 0);
-			for (long i = 1; i < size; i++) {
-				list.addLong(r.nextInt(list.size()), i);
+			for (int i = 0; i < size; i++) {
+				list.addLong(positions[i], i);
 			}
 		}
 
@@ -295,6 +308,11 @@ public class CompactListBenchmark {
 			try {
 				r = new Random(size);
 				list = impl.newInstance();
+				this.positions = new int[size];
+
+				for (int i = 0; i < size; i++) {
+					positions[i] = r.nextInt(i + 1);
+				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -323,11 +341,12 @@ public class CompactListBenchmark {
 		private Random						r;
 		private LongList					list;
 		private Class<? extends LongList>	impl;
+		private int[]						positions;
 
 		@Override
 		public void run() {
-			for (long i = 0; i < size; i++) {
-				list.removeLong(r.nextInt(list.size()));
+			for (int i = 0; i < size; i++) {
+				list.removeLong(positions[i]);
 			}
 		}
 
@@ -344,6 +363,10 @@ public class CompactListBenchmark {
 				list = impl.newInstance();
 				for (long i = 0; i < size; i++) {
 					list.addLong(r.nextInt(size));
+				}
+				positions = new int[size];
+				for (int i = 0; i < size; i++) {
+					positions[i] = r.nextInt(size - i);
 				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -373,11 +396,12 @@ public class CompactListBenchmark {
 		private Random						r;
 		private LongList					list;
 		private Class<? extends LongList>	impl;
+		private int[]						positions;
 
 		@Override
 		public void run() {
-			for (long i = 0; i < size; i++) {
-				list.setLong(r.nextInt(list.size()), i);
+			for (int i = 0; i < size; i++) {
+				list.setLong(positions[i], i);
 			}
 		}
 
@@ -394,6 +418,11 @@ public class CompactListBenchmark {
 				list = impl.newInstance();
 				for (long i = 0; i < size; i++) {
 					list.addLong(i);
+				}
+				this.positions = new int[size];
+
+				for (int i = 0; i < size; i++) {
+					positions[i] = r.nextInt(size);
 				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -423,11 +452,12 @@ public class CompactListBenchmark {
 		private Random						r;
 		private LongList					list;
 		private Class<? extends LongList>	impl;
+		private int[]						positions;
 
 		@Override
 		public void run() {
-			for (long i = 0; i < size; i++) {
-				list.setLong(r.nextInt(list.size()), i);
+			for (int i = 0; i < size; i++) {
+				list.setLong(positions[i], i);
 			}
 		}
 
@@ -444,6 +474,11 @@ public class CompactListBenchmark {
 				list = impl.newInstance();
 				for (long i = 0; i < size; i++) {
 					list.addLong(r.nextInt(size));
+				}
+				this.positions = new int[size];
+
+				for (int i = 0; i < size; i++) {
+					positions[i] = r.nextInt(size);
 				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);

@@ -9,6 +9,8 @@ package net.kothar.compactlist.internal.storage;
  */
 public abstract class ArrayStore<T> extends AbstractStore {
 
+	private static final long serialVersionUID = 7897845731880305143L;
+
 	protected T store;
 
 	/** The lowest index in the array which may be used by this store */

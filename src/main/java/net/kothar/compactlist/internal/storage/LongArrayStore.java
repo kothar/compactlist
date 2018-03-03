@@ -4,6 +4,8 @@ import net.kothar.compactlist.internal.compaction.CompactionStrategy;
 
 public class LongArrayStore extends ArrayStore<long[]> {
 
+	private static final long serialVersionUID = 1828783964482947863L;
+
 	/**
 	 * Creates a new empty store
 	 */
@@ -57,7 +59,7 @@ public class LongArrayStore extends ArrayStore<long[]> {
 	}
 
 	@Override
-	public boolean inRange(int index, long value) {
+	public boolean inRange(long value) {
 		return true;
 	}
 

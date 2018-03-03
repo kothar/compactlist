@@ -13,7 +13,7 @@ public class OffsetCompactionStrategy implements CompactionStrategy {
 	}
 
 	public OffsetCompactionStrategy(StorageAnalysis analysis) {
-		this.offset = analysis.min + (analysis.max - analysis.min) / 2;
+		this.offset = analysis.min;
 	}
 
 	@Override

@@ -1,19 +1,19 @@
 package net.kothar.compactlist.internal.storage;
 
-import net.kothar.compactlist.internal.compaction.CompactionStrategy;
-
 public class ShortArrayStore extends CompactStore<short[]> {
 
-	private ShortArrayStore() {
-		super();
+	private static final long serialVersionUID = -8685201260630950651L;
+
+	public ShortArrayStore() {
+		this(0);
 	}
 
-	public ShortArrayStore(CompactionStrategy strategy) {
-		super(strategy);
+	public ShortArrayStore(long valueOffset) {
+		super(valueOffset);
 	}
 
-	public ShortArrayStore(CompactionStrategy strategy, Store elements) {
-		super(strategy, elements.size(), elements.size());
+	public ShortArrayStore(long valueOffset, Store elements) {
+		super(valueOffset, elements.size(), elements.size());
 		copy(elements, 0);
 	}
 
@@ -38,7 +38,8 @@ public class ShortArrayStore extends CompactStore<short[]> {
 
 	@Override
 	public boolean inRange(long value) {
-		return value >= 0 && value < 1 << 16;
+		long compactValue = value - valueOffset;
+		return compactValue >= 0 && compactValue < 1 << 16;
 	}
 
 	@Override
@@ -48,7 +49,7 @@ public class ShortArrayStore extends CompactStore<short[]> {
 
 	@Override
 	protected ArrayStore<short[]> newInstance() {
-		return new ShortArrayStore();
+		return new ShortArrayStore(valueOffset);
 	}
 
 }
