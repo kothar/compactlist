@@ -21,7 +21,7 @@ This project is published to Maven Central via Sonatype OSSRH
 <dependency>
   <groupId>net.kothar</groupId>
   <artifactId>compactlist</artifactId>
-  <version>0.1.0</version>
+  <version>0.4.1</version>
 </dependency>
 ```
 
