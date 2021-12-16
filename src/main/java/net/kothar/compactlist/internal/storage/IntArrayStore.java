@@ -39,7 +39,7 @@ public class IntArrayStore extends CompactStore<int[]> {
 	@Override
 	public boolean inRange(long value) {
 		long compactValue = value - valueOffset;
-		return compactValue >= 0 && compactValue < 1 << 32;
+		return compactValue >= 0 && compactValue < (1L << 32);
 	}
 
 	@Override
