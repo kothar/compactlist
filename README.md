@@ -21,7 +21,7 @@ This project is published to Maven Central via Sonatype OSSRH
 <dependency>
   <groupId>net.kothar</groupId>
   <artifactId>compactlist</artifactId>
-  <version>0.4.1</version>
+  <version>0.4.2</version>
 </dependency>
 ```
 
@@ -35,7 +35,7 @@ array is grown during an append.
 The implementation currently splits segments at 2^16 elements, which is where performance gains for insertion start to appear.
 In the charts below, `CompactList` beats `ArrayList` when inserting ~2^17 or more elements.
 
-Benchmarks were run on a 2.2 GHz Intel Core i7 running MacOS 10.13.2 and Oracle Java 1.8.0_131-b11
+Benchmarks were run on a 2.2 GHz Intel Core i7 running MacOS 12.0.1 and AdoptOpenJDK 11.0.11
 
 `mvn exec:exec` will run the benchmarks.
  
