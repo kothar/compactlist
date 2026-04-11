@@ -1,0 +1,31 @@
+# Static analysis for GitHub Actions workflow security and configuration issues.
+# See https://docs.zizmor.sh/
+
+name: zizmor
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+permissions: {}
+
+jobs:
+  zizmor:
+    name: Run zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@v0.5.2
+        with:
+          # Console + annotations work without GitHub Advanced Security; enable SARIF upload instead if the repo has code scanning.
+          advanced-security: false
+          annotations: true
